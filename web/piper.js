@@ -165,7 +165,7 @@ function wav(samples, rate) {
 }
 
 /**
- * Speak `text` with `voice` (a piper-voices name, e.g. "en_US-lessac-medium").
+ * Speak `text` with `voice` (a piper-voices name, e.g. "en_GB-alan-low").
  * Returns a WAV as a Uint8Array. The first call for a voice downloads it.
  */
 export async function synth(text, voice, speaker = 0) {
