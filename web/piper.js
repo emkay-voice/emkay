@@ -12,6 +12,8 @@
 // which calls synth() through JSPI and gets a WAV back, as a device's
 // ovos-tts-plugin-piper writes one.
 
+import { LEAN, oneAtATime } from "./model-queue.js";
+
 const BASE = new URL("./", import.meta.url).href;
 const VOICES = "https://huggingface.co/rhasspy/piper-voices/resolve/main/";
 const CACHE = "emkay-piper-v1";
@@ -114,20 +116,21 @@ function voicePath(voice) {
   return `${code.split("_")[0]}/${code}/${encodeURIComponent(speaker)}/${quality}/${encodeURIComponent(voice)}`;
 }
 
+/** The voice's ONNX session, made once, when no other model is being opened. */
 function session(voice) {
   if (!sessions.has(voice)) {
-    const p = (async () => {
+    const p = oneAtATime(async () => {
       const o = await ort();
       const url = VOICES + voicePath(voice) + ".onnx";
       const [cfgBytes, model] = await Promise.all([
         cached(url + ".json"), cached(url, (f) => modelProgress("tts", voice, f))]);
       const cfg = JSON.parse(new TextDecoder().decode(cfgBytes));
-      const s = await o.InferenceSession.create(model, { executionProviders: ["wasm"] });
+      const s = await o.InferenceSession.create(model, { executionProviders: ["wasm"], ...LEAN });
       await loadPhonemizer();
       loaded.add(voice);
       modelProgress("tts", voice, 1, "ready");
       return { cfg, session: s };
-    })();
+    });
     p.catch(() => {                          // a failed download is tried again next time
       sessions.delete(voice);
       modelProgress("tts", voice, 0, "error");

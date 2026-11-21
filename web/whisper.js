@@ -16,6 +16,8 @@
 // calls transcribe() through JSPI, as ovos-tts-plugin-piper-browser calls
 // web/piper.js.
 
+import { LEAN, oneAtATime } from "./model-queue.js";
+
 const BASE = new URL("./", import.meta.url).href;
 
 /** A model download's progress, for the page (worker.js emkayModelProgress). */
@@ -51,17 +53,18 @@ async function inCache(model) {
   }
 }
 
-/** The ASR pipeline for `model`, made once. */
+/** The ASR pipeline for `model`, made once, when no other model is being opened. */
 function pipe(model) {
   if (!pipes.has(model)) {
-    const p = (async () => {
+    const p = oneAtATime(async () => {
       const t = await transformers();
       const device = "gpu" in navigator && (await navigator.gpu.requestAdapter().catch(() => null))
         ? "webgpu" : "wasm";
       // Whisper: the encoder loses too much at 8 bit ("What? I'm a bit" for
       // "what time is it"); the decoder does not. A CTC model (wav2vec2, like
       // Røst for Danish) is one file, "model", used at 8 bit.
-      const options = { device, dtype: { encoder_model: "fp32", decoder_model_merged: "q8", model: "q8" } };
+      const options = { device, dtype: { encoder_model: "fp32", decoder_model_merged: "q8", model: "q8" },
+        session_options: LEAN };
       if (device === "webgpu") options.dtype.decoder_model_merged = "q4";
       // the download, for the page's status line (app.js onModel): one
       // model is several files; transformers.js reports each one
@@ -80,7 +83,7 @@ function pipe(model) {
       loaded.add(model);
       console.log(`[emkay] whisper ${model} ready on ${device}`);
       return asr;
-    })();
+    });
     p.catch((e) => {
       pipes.delete(model);
       modelProgress("stt", model, 0, "error");
