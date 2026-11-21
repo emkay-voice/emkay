@@ -37,7 +37,7 @@ const WHISPER_STT = "ovos-stt-plugin-whisper-browser";
 
 /** As ovos-tts-plugin-piper-browser's VOICES and ovos-stt-plugin-whisper-browser's MODELS. */
 const VOICES = {
-  "en-us": "en_US-lessac-medium", "en-gb": "en_GB-alba-medium", "da-dk": "da_DK-talesyntese-medium",
+  "en-us": "en_GB-alan-low", "en-gb": "en_GB-alan-low", "da-dk": "da_DK-talesyntese-medium",
   "de-de": "de_DE-thorsten-medium", "es-es": "es_ES-davefx-medium", "fr-fr": "fr_FR-siwis-medium",
   "it-it": "it_IT-paola-medium", "nl-nl": "nl_NL-pim-medium", "pt-pt": "pt_PT-tugão-medium",
   "pt-br": "pt_BR-faber-medium", "ca-es": "ca_ES-upc_ona-medium", "eu-es": "eu_ES-antton-medium",

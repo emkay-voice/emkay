@@ -77,7 +77,7 @@ ovos-control-panel
 # ovos-audio's player for music, radio and podcasts, and Whisper speech
 # recognition on the phone (offline)
 ovos-stt-plugin-browser
-ovos-tts-plugin-piper-browser
+ovos-tts-plugin-piper-browser>=0.1.0a3
 ovos-phal-plugin-browser
 ovos-audio-plugin-browser
 ovos-stt-plugin-whisper-browser
