@@ -12,6 +12,7 @@ ovos-tts-plugin-server
 # skills-essential, skills-internet and skills-audio groups. Emkay lists
 # them by name instead, so a skill that cannot work in a browser is not
 # built, downloaded and loaded only to be blacklisted (boot.py). Left out:
+# ovos-skill-hello-world (a demo),
 # ovos-skill-personal (ovos-skill-about-emkay answers as Emkay),
 # ovos-skill-boot-finished (waits for services a browser has not got),
 # ovos-skill-ddg and ovos-skill-wolfie (a web page may not ask them),
@@ -22,7 +23,6 @@ ovos-tts-plugin-server
 ovos-skill-fallback-unknown
 ovos-skill-alerts
 ovos-skill-date-time
-ovos-skill-hello-world
 ovos-skill-spelling
 ovos-skill-parrot
 ovos-skill-count
@@ -75,6 +75,28 @@ ovos-media-provider-news
 # eiffel tower") from Wikidata and OpenStreetMap, which a browser may read -
 # in place of DuckDuckGo and Wolfram Alpha, which it may not (boot.py)
 ovos-skill-wikidata
+
+# stories read aloud (common reading providers, fetched from Wikisource and
+# their own sites, nothing bundled), and your own documents
+ovos-skill-andersen-tales
+ovos-skill-grimm-tales
+ovos-skill-1001-nights
+ovos-skill-documents
+
+# music made on the device: sing along or let Emkay sing (karaoke), a band
+# led by voice (jamband), and the MIDI instrument both play on
+ovos-phal-plugin-midi
+ovos-skill-karaoke
+ovos-skill-jamband
+
+# listening to the room, on the device, nothing kept or sent (boot.py,
+# AUDIO_TRANSFORMERS, on by default): good manners about swearing overheard
+# (with ovos-good-manners-pipeline-plugin, first in the pipeline, GOOD_MANNERS),
+# and auto volume, with its voice skill
+ovos-audio-transformer-plugin-overheard-manners
+ovos-good-manners-pipeline-plugin
+ovos-audio-transformer-plugin-autovolume
+ovos-skill-autovolume
 
 # who the assistant is, as Emkay: takes the place of ovos-skill-personal,
 # which boot.py blacklists (REPLACED_SKILLS)

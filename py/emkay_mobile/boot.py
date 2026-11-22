@@ -95,7 +95,7 @@ INSTALLER_PIPELINE = (
 
 #: Version of the one-time defaults below; each step is written once, so a
 #: phone set up by an older build gets only the steps it has not had yet.
-DEFAULTS_VERSION = 15
+DEFAULTS_VERSION = 16
 #: the package index the control panel searches (defaults v7)
 STORE_INDEX = "https://store.emkay.ai"
 
@@ -103,6 +103,13 @@ STORE_INDEX = "https://store.emkay.ai"
 #: site itself is built from the alpha channel).
 ALPHA_CONSTRAINTS = ("https://raw.githubusercontent.com/OpenVoiceOS/ovos-releases/"
                      "refs/heads/main/constraints-alpha.txt")
+
+#: good manners, first in the pipeline (defaults v16)
+GOOD_MANNERS = "ovos-good-manners-pipeline-plugin"
+#: audio transformers Emkay turns on (defaults v16): they listen to the room
+#: between wake words, on the device, and keep or send nothing of the sound
+AUDIO_TRANSFORMERS = ("ovos-audio-transformer-plugin-overheard-manners",
+                      "ovos-audio-transformer-plugin-autovolume")
 
 #: The user layer of mycroft.conf, as on a device (~/.config/mycroft).
 CONF_PATH = os.path.expanduser("~/.config/mycroft/mycroft.conf")
@@ -359,6 +366,9 @@ def _browser_defaults(done: int) -> dict:
          the `fallback_module` v13 set (the public OVOS servers) goes. While
          a model downloads, Emkay says so and offers the servers for the
          moment (speech.py, servers_meanwhile)
+     16. good manners goes first in the pipeline (GOOD_MANNERS), and the
+         room is listened to for overheard swearing and its noise level
+         (AUDIO_TRANSFORMERS: overheard-manners and auto volume, on)
     The m2v model folders and the unused pipeline plugins are written on
     every boot, since they follow whatever the site shipped and the
     pipeline the user chose.
@@ -446,6 +456,20 @@ def _browser_defaults(done: int) -> dict:
         # load YesNo plugin" and fell back to the same engine built in.
         if not Configuration().get("skills", {}).get("ask_yesno_plugin"):
             out.setdefault("skills", {})["ask_yesno_plugin"] = "ovos-yes-no-plugin"
+    if done < 16:
+        # good manners (ovos-good-manners-pipeline-plugin, which
+        # overheard-manners brings): first in the pipeline, as its README asks
+        pipeline = out.get("intents", {}).get("pipeline") or Configuration().get("intents", {}).get("pipeline", [])
+        placed = _with_plugin(pipeline, GOOD_MANNERS)
+        if placed:
+            out.setdefault("intents", {})["pipeline"] = placed
+        # and the room listened to, on the device, for overheard swearing and
+        # for how noisy it is (AUDIO_TRANSFORMERS): named in audio_transformers
+        # is OVOS' opt-in, and both start enabled; their control panel pages
+        # turn them off
+        tx = out.setdefault("audio_transformers", {})
+        for name in AUDIO_TRANSFORMERS:
+            tx.setdefault(name, {})
     user = read_user_config()
     # defaults v3 turned padaos off (a ~30 s regex compile after boot); without
     # it padatious matched "what time is it" to the timer skill. v4 takes
@@ -508,15 +532,21 @@ def _blacklist(out: dict, skill_ids) -> None:
     skills["blacklisted_skills"] = blacklisted
 
 
-def _with_common_reading(pipeline: list) -> list:
-    """`pipeline` with ovos-common-reading-pipeline-plugin's two stages added
-    where its README asks (pipeline_place.OVERRIDES); [] when nothing is to
+def _with_plugin(pipeline: list, plugin_id: str) -> list:
+    """`pipeline` with `plugin_id`'s stages added where its README asks
+    (pipeline_place.OVERRIDES), else by the rule; [] when nothing is to
     change (already there, plugin missing, or no pipeline to edit)."""
     from ovos_plugin_manager.pipeline import OVOSPipelineFactory
     from . import pipeline_place
-    if "ovos-common-reading-pipeline-plugin" not in OVOSPipelineFactory.get_installed_pipeline_ids():
+    if plugin_id not in OVOSPipelineFactory.get_installed_pipeline_ids():
         return []
-    return pipeline_place.place(pipeline, "ovos-common-reading-pipeline-plugin")
+    return pipeline_place.place(pipeline, plugin_id)
+
+
+def _with_common_reading(pipeline: list) -> list:
+    """`pipeline` with ovos-common-reading-pipeline-plugin's two stages added
+    where its README asks; [] when nothing is to change."""
+    return _with_plugin(pipeline, "ovos-common-reading-pipeline-plugin")
 
 
 def _phone_language():
