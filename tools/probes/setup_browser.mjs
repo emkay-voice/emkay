@@ -67,6 +67,8 @@ try {
   await send("Page.enable");
   await send("Page.navigate", { url });
   await until(`!!document.getElementById("start") && !document.getElementById("start").hidden`, 400, "OVOS boot");
+  // how long a first start takes, to compare builds by (from opening the page)
+  log(`booted in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   // a fresh profile is a first start: Emkay offers the wizard
   log(`first start: ${await js(`!document.getElementById("first").hidden && document.getElementById("first").innerText + " | " + document.getElementById("start").innerText`)}`);
   await js(`navigator.serviceWorker.ready.then(() => true)`);
