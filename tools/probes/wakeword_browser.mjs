@@ -114,6 +114,11 @@ boot.bus().emit(Message("configuration.patch", {"config": {"listener": {"wake_wo
   log(`captions so far: ${await js(`JSON.stringify(window.__captions)`)}`);
   log(`wake word state: ${await js(`window.emkay.wake.state + ", chunks " + window.emkay.wake.chunks + ", best score " + window.emkay.wake.best`)}`);
 } finally {
+  // the audio transformers (listener.py): what the page sent them, and what they made of it
+  log(`room: ${await js(`JSON.stringify({sent: window.emkay.room?.sent, dropped: window.emkay.room?.dropped})`).catch((e) => e.message)}`);
+  log(`room listeners: ${await py(`import json
+from emkay_mobile import listener
+json.dumps({p.name: round(getattr(p, "_measured", -1), 1) for p in listener.plugins()})`).catch((e) => e.message)}`);
   log("worker log:");
   for (const l of workerLines.slice(-Number(process.env.LINES || 25))) console.log(`  ${l}`);
   ws.close();

@@ -21,7 +21,7 @@ import time
 # Emkay's own modules first: importing boot runs browser.install(), which
 # puts the stand-ins for native packages (shims/: pexpect, psutil, ...) on
 # the path; ovos-utils' security module imports pexpect
-from . import boot, browser, gui, netlog, panel, privacy, speech
+from . import boot, browser, gui, listener, netlog, panel, privacy, speech
 
 import ovos_phal_plugin_browser as phal   # the browser tab as the device
 
@@ -76,6 +76,8 @@ def start(js_post, user_config=None) -> str:
     print(f"[emkay] gui up in {time.time() - t:.1f}s")
     boot.report("boot.services", 0.3)
     speech.start(bus, lambda wav, meta: _post("audio", json.dumps(meta), wav))
+    listener.start(bus)     # the audio transformers (listener.py)
+    info["room_listeners"] = listener.names()   # the page sends room audio only to these
     _start_audio_service(bus)
     boot.report("boot.services", 0.6)
     from . import panel
@@ -282,7 +284,8 @@ def _speech_settings() -> dict:
             "stt": json.dumps(cfg.get("stt", {}), sort_keys=True),
             "tts": json.dumps(cfg.get("tts", {}), sort_keys=True),
             "wake_word": ww,
-            "hotword": json.dumps(cfg.get("hotwords", {}).get(ww or "", {}), sort_keys=True)}
+            "hotword": json.dumps(cfg.get("hotwords", {}).get(ww or "", {}), sort_keys=True),
+            "room": json.dumps(cfg.get("listener", {}).get("audio_transformers") or {}, sort_keys=True)}
 
 
 def remember_speech_settings():
@@ -302,6 +305,8 @@ def _settings_changed():
     - another STT or TTS: speech.reload() keeps the ones in use until the new
       ones work, and prewarm() starts their download now (the page shows it)
     - another wake word, or its settings: the page starts its engine again
+    - other audio transformers (listener.audio_transformers): loaded again,
+      and the page told which want the room audio now
     """
     global _applied
     if _applied is None:
@@ -321,6 +326,9 @@ def _settings_changed():
         print("[emkay] speech settings changed: new STT/TTS from the next use")
         speech.reload(keep_previous=True)
         speech.prewarm()
+    if new.get("room") != old.get("room"):
+        names = listener.reload()
+        _post("bus", json.dumps({"type": "emkay.room", "data": {"names": [p.name for p in names]}}))
     if new["wake_word"] != old["wake_word"] or new["hotword"] != old["hotword"]:
         from ovos_config import Configuration
         print(f"[emkay] wake word: {new['wake_word']}")
@@ -410,6 +418,12 @@ def wakeword(name: str):
 def record_begin():
     """The page started recording: tell OVOS, so the face starts listening."""
     boot.emit("recognizer_loop:record_begin")
+
+
+def room_audio(pcm16):
+    """Room audio while the page waits for the wake word, for the audio
+    transformers (listener.room, dinkum's feed_audio): 16 kHz 16-bit mono."""
+    listener.room(pcm16.to_bytes() if hasattr(pcm16, "to_bytes") else bytes(pcm16))
 
 
 def heard(pcm16, sample_rate=16000) -> str:

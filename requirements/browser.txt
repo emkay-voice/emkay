@@ -119,7 +119,7 @@ ovos-skill-jamband
 # and auto volume, with its voice skill
 ovos-audio-transformer-plugin-overheard-manners
 ovos-good-manners-pipeline-plugin
-ovos-audio-transformer-plugin-autovolume
+ovos-audio-transformer-plugin-autovolume>=0.0.1a3   # works without threads (Pyodide)
 ovos-skill-autovolume
 
 # who the assistant is, as Emkay: takes the place of ovos-skill-personal,

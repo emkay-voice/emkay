@@ -790,8 +790,9 @@ def start(on_message=None, user_config=None) -> dict:
             "skipped_threads": list(browser.STARTED)}
 
 
-def utterance(text: str, lang: str = None, session=None):
-    """Put what the user said on the bus, the way ovos-dinkum-listener does."""
+def utterance(text: str, lang: str = None, session=None, context: dict = None):
+    """Put what the user said on the bus, the way ovos-dinkum-listener does
+    (`context`: what the audio transformers found, as dinkum's stt_context)."""
     from ovos_bus_client.message import Message
     from ovos_bus_client.session import SessionManager
     from ovos_config import Configuration
@@ -799,7 +800,7 @@ def utterance(text: str, lang: str = None, session=None):
     sess = session or SessionManager.get_default_session()
     _bus.emit(Message("recognizer_loop:utterance",
                       {"utterances": [text], "lang": lang},
-                      {"session": sess.serialize(), "source": "emkay",
+                      {**(context or {}), "session": sess.serialize(), "source": "emkay",
                        "destination": "skills"}))
 
 

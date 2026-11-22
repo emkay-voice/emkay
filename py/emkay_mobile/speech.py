@@ -377,6 +377,8 @@ def heard(pcm16: bytes, sample_rate: int = 16000):
     from ovos_bus_client.message import Message
     lang = _config().get("lang", "en-US")
     bus.emit(Message("recognizer_loop:record_end"))
+    from . import listener
+    pcm16, context = listener.speech(pcm16)   # the audio transformers, before STT as in dinkum
     try:
         text = transcribe(pcm16, sample_rate, lang)
     except SpeechNotReady as e:
@@ -388,7 +390,7 @@ def heard(pcm16: bytes, sample_rate: int = 16000):
         bus.emit(Message("recognizer_loop:speech.recognition.unknown"))
         return ""
     from .browser import hand_over
-    hand_over(lambda: boot.utterance(text, lang=lang))   # as the listener: on the bus, back to listening
+    hand_over(lambda: boot.utterance(text, lang=lang, context=context))   # as the listener: on the bus, back to listening
     return text
 
 

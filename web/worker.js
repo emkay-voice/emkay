@@ -303,6 +303,7 @@ const commands = {
   wakeword: ({ name }) => promising(main.wakeword, name),
   heard_text: ({ text }) => promising(main.heard_text, text),
   sound_bytes: ({ uri }) => main.sound_bytes(uri),
+  room_audio: ({ pcm }) => promising(main.room_audio, new Uint8Array(pcm)),
   heard: ({ pcm, rate }) => promising(main.heard, new Uint8Array(pcm), rate),
   recorded: ({ pcm, rate, name }) => promising(main.recorded, new Uint8Array(pcm), rate, name),
   playback_started: ({ ident, visemes }) => promising(main.playback_started, ident, JSON.stringify(visemes || [])),
