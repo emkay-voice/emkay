@@ -112,9 +112,12 @@ None`);
   await sleep(3000);
   log(`after reload: still loaded=${(await skills()).some((s) => !before.includes(s))}`);
 
-  // menu → From GitHub: Update (same commit: up to date), then Remove (two taps)
+  // menu → About → From GitHub (for developers): Update (same commit: up
+  // to date), then Remove (two taps)
   await js(`document.getElementById("menu-button").click(); true`);
   await until(shown("menu"), 10, "the menu");
+  await js(`document.getElementById("menu-about").click(); true`);
+  await until(shown("about"), 10, "About");
   log(`menu entry: "${await js(`document.querySelector("#menu-github b").textContent`)}" shown=${await js(shown("menu-github"))}`);
   await js(`document.getElementById("menu-github").click(); true`);
   await until(`document.querySelectorAll("#gh-list .gh-item").length > 0`, 20, "the list");

@@ -38,7 +38,7 @@ See [`requirements/`](requirements) for the exact lists.
 
 Skills install the usual way – they are Python packages, and everything in
 `~/.config` and `~/.local` lives in the browser's IndexedDB. The control
-panel's Backup page (⚙ → Settings) downloads the settings to the
+panel's Backup page (⚙ → Control panel) downloads the settings to the
 phone and restores them, so they survive clearing the browser.
 
 ## How it fits together
@@ -49,7 +49,7 @@ page (web/app.js)                 Web Worker (web/worker.js + Pyodide)
  │   core + gui websockets       (and every bus message)       │
  ├─ microphone → 16 kHz PCM  ───► speech.heard → STT plugin    ├─ FakeBus ─ ovos-core
  ├─ speaker ◄─ WAV + visemes ◄─── speech.on_speak → TTS plugin ┘            + skills
- └─ menu: Settings (the stock OpenVoiceOS control panel), full screen, network log, about
+ └─ menu (⚙): where Emkay hears, speaks and thinks; Guardian; the store; the control panel (the stock OpenVoiceOS one, in Emkay's look); about
 ```
 
 - `py/emkay_mobile/boot.py` starts OVOS the way `ovos_core.__main__` does.

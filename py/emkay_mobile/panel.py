@@ -149,22 +149,6 @@ def _browser_recommendations():
     recommends.recommended_plugins = recommended_plugins
 
 
-def follow_sensors(bus):
-    """Let the panel's sensor log hear readings from the start.
-
-    The Sensors page shows what ovos_webui.sensors has heard, and it starts
-    listening on the first visit to the page. On a device ovos-PHAL-sensors
-    repeats its readings, so the page fills soon after; the browser plugin
-    reports changes only (a battery level, a position), so the log listens
-    from boot instead.
-    """
-    try:
-        from ovos_webui import sensors
-        sensors.attach(bus)
-    except Exception as e:   # the panel is optional
-        print(f"[emkay] sensor log not attached: {e!r}")
-
-
 def app():
     """The panel's ASGI app, built once on OVOS' bus."""
     global _app

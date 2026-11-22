@@ -116,7 +116,7 @@ try {
 
   // a tap: ⚙ → Settings, with the three lines at the top
   await js(`document.getElementById("privacy-chip").click(); true`);
-  await until(`!document.getElementById("menu").hidden && !document.getElementById("menu-settings-page").hidden`, 5, "Settings");
+  await until(`!document.getElementById("menu").hidden && !!document.getElementById("privacy").offsetParent`, 5, "the menu at its three lines");
   const rows = await js(`document.getElementById("privacy").innerText.replace(/\\n+/g, " | ")`);
   log(`settings: ${rows}`);
   check(/Hears/.test(rows) && /Speaks/.test(rows) && /Thinks/.test(rows), "Settings shows hears/speaks/thinks");

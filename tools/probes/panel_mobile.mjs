@@ -80,7 +80,6 @@ try {
   await tapAt(...await center(`document.getElementById("start")`));
   await sleep(2000);
   await tapAt(...await center(`document.getElementById("menu-button")`));
-  await tapAt(...await center(`document.getElementById("menu-settings")`));
   await tapAt(...await center(`document.getElementById("menu-panel")`));
   const doc = `document.getElementById("panel-frame").contentDocument`;
   await until(`${doc}?.readyState === "complete" && ${doc}.getElementById("menu-toggle")`, 120, "panel page with its menu button");

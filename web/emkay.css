@@ -17,12 +17,14 @@ body { font-family: system-ui, sans-serif; color: #fff; -webkit-tap-highlight-co
 .bar div { height: 100%; width: 0; background: #22a7f0; transition: width .15s linear; }
 #start, #first-setup { margin-top: 18px; font-size: 18px; padding: 16px 32px; border-radius: 40px; border: 0;
   background: #22a7f0; color: #fff; }
-/* first start: "Sæt op" is the main button, starting on the defaults the quiet one */
+/* first start: the text, then Start and Set up (below) */
 .first { display: flex; flex-direction: column; align-items: center; max-width: 300px;
   margin-top: 22px; text-align: center; }
 .first[hidden] { display: none; }
 .first p { font-size: 14px; line-height: 1.45; }
-#start.quiet { margin-top: 12px; background: transparent; color: #9cd3f5; border: 1px solid #22a7f0; }
+/* first start: Start is the big one; Set up the quiet one under it */
+#first-setup { margin-top: 12px; background: transparent; color: #9cd3f5; border: 1px solid #22a7f0; }
+#first-setup[hidden] { display: none; }
 
 /* the whole screen is the talk button; this is only the hint in the corner */
 .mic { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%);
@@ -60,11 +62,9 @@ body { font-family: system-ui, sans-serif; color: #fff; -webkit-tap-highlight-co
   text-decoration: none; font-size: 16px; }
 .menu-card .menu-item:active, .menu-card .menu-item:hover { background: #232c38; }
 .menu-card .menu-item[hidden] { display: none; }
-/* the menu's Settings page, and its developers' corner (app.js menuPage) */
-#menu-main, #menu-settings-page, .menu-dev { display: flex; flex-direction: column; gap: 10px; }
-#menu-main[hidden], #menu-settings-page[hidden], .menu-dev[hidden] { display: none; }
-.menu-card h3.menu-sub { margin: 4px 0 4px; font-size: 1.05em; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 10px; }
-.menu-card h3.menu-sub img { width: 30px; height: 30px; border-radius: 7px; }
+/* the developers' corner, in About */
+.menu-dev { display: flex; flex-direction: column; gap: 10px; }
+.menu-dev[hidden] { display: none; }
 .menu-dev { margin-top: 14px; padding-top: 6px; border-top: 1px solid #2d3a48; }
 .menu-dev p.small { margin: 6px 0; }
 .menu-card .menu-item img { width: 40px; height: 40px; border-radius: 9px; flex: none; }
@@ -184,8 +184,6 @@ body { font-family: system-ui, sans-serif; color: #fff; -webkit-tap-highlight-co
 .menu-card .menu-item.current { outline: 2px solid #22a7f0; }
 .menu-card .menu-item:disabled { opacity: .45; }
 /* first start: the quiet way to an assistant in the house */
-#first-house { margin-top: 10px; background: none; border: 0; color: #9cd3f5; font-size: 15px; padding: 8px; }
-#first-house[hidden] { display: none; }
 .network-list td.blocked { color: #7d7; }   /* refused in local only (netlog.js) */
 /* "Connect to my Home Assistant", under "on this device" in the brain choice */
 .brain-choice .brain-sub { display: flex; gap: 10px; align-items: flex-start; margin: -2px 0 10px 52px; cursor: pointer; }
@@ -259,7 +257,7 @@ body { font-family: system-ui, sans-serif; color: #fff; -webkit-tap-highlight-co
 .privacy-chip.external { color: #f0b429; border-color: #f0b42966; opacity: .85; }
 .privacy-chip.external.open { border-color: #f0b429; }
 
-/* the same three lines at the top of ⚙ → Settings */
+/* the same three lines at the top of ⚙ */
 .privacy { background: #0c1016; border: 1px solid #1d2430; border-radius: 14px; padding: 10px 12px;
   display: flex; flex-direction: column; gap: 8px; }
 .privacy-title { margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #789; }
@@ -286,3 +284,18 @@ body { font-family: system-ui, sans-serif; color: #fff; -webkit-tap-highlight-co
 .speech-wait-actions button.secondary { width: 100%; font-size: 14px; padding: 10px 12px; border-radius: 12px;
   background: transparent; color: #f0b429; border: 1px solid #f0b42999; }
 .speech-wait-actions button.link { font-size: 13px; background: none; border: 0; color: #9ab; padding: 4px; }
+
+/* install as an app: a small tip under ⚙, offered once (app.js offerInstall) */
+.install-tip { position: fixed; right: 12px; top: calc(max(10px, env(safe-area-inset-top)) + 54px); z-index: 31;
+  max-width: min(340px, calc(100vw - 24px)); box-sizing: border-box; display: grid;
+  grid-template-columns: 40px 1fr; gap: 6px 12px; align-items: center; padding: 12px 14px;
+  background: #141b24; border: 1px solid #232c38; border-radius: 18px; color: #fff;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45); }
+.install-tip[hidden] { display: none; }
+.install-tip img { width: 40px; height: 40px; border-radius: 9px; }
+.install-tip span { display: flex; flex-direction: column; }
+.install-tip small { font-size: 12px; color: #8a96a8; line-height: 1.3; }
+.install-tip button { grid-column: 1 / -1; font-size: 15px; padding: 10px; border-radius: 12px; border: 0;
+  background: #22a7f0; color: #fff; }
+.install-tip button.link { background: none; color: #9ab; padding: 4px; }
+.install-tip button[hidden] { display: none; }

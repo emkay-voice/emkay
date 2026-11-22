@@ -183,7 +183,7 @@ function prefixPaths(text, html) {
   const out = text
     .replace(/\b(href|src|action)="\/(?!\/)/g, `$1="${PREFIX}`)
     .replace(/(location\.href\s*=\s*["'`])\/(?!\/)/g, `$1${PREFIX}`);
-  return html ? out.replace(/<\/head>/i, `${LINK_FIX}${THEME}</head>`) : out;
+  return html ? out.replace(/<\/head>/i, `${LINK_FIX}</head>`) : out;
 }
 
 /**
@@ -201,33 +201,3 @@ addEventListener("click", (e) => {
 }, true);
 </script>`;
 
-/**
- * Emkay's look for the panel: its own colour tokens (app.css custom
- * properties) set to Emkay's dark palette and blue accent, the same as the
- * boot screen and the visage. Only the values change; the
- * panel's CSS is untouched. "html:root:not([data-emkay])" outranks both of
- * the panel's dark-mode rules, so Emkay's palette holds in every mode.
- * It also leaves the pages for hardware a phone does not have out of the
- * panel's menu.
- */
-const THEME = `<style id="emkay-theme">
-html:root:not([data-emkay]) {
-  color-scheme: dark;
-  --bg: #05070a; --bg-soft: #000000; --card: #141b24; --card-soft: #1d232b;
-  --bevel: rgba(255, 255, 255, 0.05); --ink: #ffffff; --muted: #8a96a8; --line: #232c38;
-  --accent: #22a7f0; --accent-strong: #1478c8; --accent-hover: #0f6ab3;
-  --accent-ink: #ffffff; --accent-wash: rgba(34, 167, 240, 0.15);
-  --ok: #3ddc84; --warn: #ffc93c; --bad: #ff5c5c;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 34px rgba(0, 0, 0, 0.45);
-  --radius: 16px;
-}
-/* pages for hardware a browser tab does not have (Wi-Fi, the Mark 1
-   faceplate, desktop apps): left out of the menu; the pages themselves
-   still open if asked for. Sensors stay: the browser PHAL plugin reports
-   the phone's (ovos-phal-plugin-browser). */
-nav a[href$="/network"], nav a[href$="/mark1"],
-nav a[href$="/apps"] { display: none !important; }
-/* the setup wizard's wake word test: there is no wake word listener here
-   yet (tap to talk), so its step is left out too */
-main h2:has(+ .card #wake-test), main .card:has(#wake-test) { display: none !important; }
-</style>`;

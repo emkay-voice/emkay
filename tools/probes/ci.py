@@ -41,9 +41,9 @@ PROBES = [
     ("lang_browser.mjs", {"PHONE_LANG": "da-DK"}, [], [
         r"OVOS lang: da-DK",                    # the phone's language
         r"downloaded: \['intents-da-DK', 'm2v-da'\]",   # and only that one
-        # texts follow the panel: an entry of the menu reads "Settings" now
-        # (any entries before it, e.g. "Where should Emkay think?")
-        r"menu:(?:(?!html lang)[\s\S])*?Settings",
+        # texts follow the panel: an entry of the menu reads "Control panel"
+        # now (any entries before it, e.g. "Where should Emkay think?")
+        r"menu:(?:(?!html lang)[\s\S])*?Control panel",
         r"restart button: Restart to use en-US",
         r"after restart: .*intents-en-US",
     ]),
