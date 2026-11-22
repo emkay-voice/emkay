@@ -73,14 +73,15 @@ EMKAY_WAKE_WORD = "hey_emkay"
 #: The intent pipeline ovos-installer writes (defaults v10), so Emkay matches
 #: an installed device rather than ovos-config's bare default: it adds
 #: common query (knowledge skills compete, e.g. Wikipedia and
-#: ovos-skill-wiki-offline) and persona (high and low). Copied from
-#: ovos-installer's ansible/roles/ovos_config/templates/mycroft.conf.j2,
-#: November 2026.
+#: ovos-skill-wiki-offline). Copied from ovos-installer's
+#: ansible/roles/ovos_config/templates/mycroft.conf.j2, November 2026, without
+#: its persona stages (defaults v16): Emkay doesn't ship ovos-persona, and
+#: installed from the control panel it is put back by the rule
+#: (pipeline_place.py).
 INSTALLER_PIPELINE = (
     "ovos-stop-pipeline-plugin-high",
     "ovos-converse-pipeline-plugin",
     "ovos-ocp-pipeline-plugin-high",
-    "ovos-persona-pipeline-plugin-high",
     "ovos-padatious-pipeline-plugin-high",
     "ovos-m2v-pipeline-high",
     "ovos-fallback-pipeline-plugin-high",
@@ -89,7 +90,6 @@ INSTALLER_PIPELINE = (
     "ovos-adapt-pipeline-plugin-medium",
     "ovos-common-query-pipeline-plugin",
     "ovos-fallback-pipeline-plugin-medium",
-    "ovos-persona-pipeline-plugin-low",
     "ovos-fallback-pipeline-plugin-low",
 )
 
@@ -106,6 +106,8 @@ ALPHA_CONSTRAINTS = ("https://raw.githubusercontent.com/OpenVoiceOS/ovos-release
 
 #: good manners, first in the pipeline (defaults v16)
 GOOD_MANNERS = "ovos-good-manners-pipeline-plugin"
+#: persona's stages, out of the pipeline (defaults v16): not shipped any more
+PERSONA = "ovos-persona-pipeline-plugin"
 #: audio transformers Emkay turns on (defaults v16): they listen to the room
 #: between wake words, on the device, and keep or send nothing of the sound
 AUDIO_TRANSFORMERS = ("ovos-audio-transformer-plugin-overheard-manners",
@@ -366,7 +368,8 @@ def _browser_defaults(done: int) -> dict:
          the `fallback_module` v13 set (the public OVOS servers) goes. While
          a model downloads, Emkay says so and offers the servers for the
          moment (speech.py, servers_meanwhile)
-     16. good manners goes first in the pipeline (GOOD_MANNERS), and the
+     16. persona's stages leave the pipeline (PERSONA, no longer shipped),
+         good manners goes first in it (GOOD_MANNERS), and the
          room is listened to for overheard swearing and its noise level
          (AUDIO_TRANSFORMERS: overheard-manners and auto volume, on)
     The m2v model folders and the unused pipeline plugins are written on
@@ -459,10 +462,13 @@ def _browser_defaults(done: int) -> dict:
     if done < 16:
         # good manners (ovos-good-manners-pipeline-plugin, which
         # overheard-manners brings): first in the pipeline, as its README asks
-        pipeline = out.get("intents", {}).get("pipeline") or Configuration().get("intents", {}).get("pipeline", [])
-        placed = _with_plugin(pipeline, GOOD_MANNERS)
-        if placed:
-            out.setdefault("intents", {})["pipeline"] = placed
+        before = out.get("intents", {}).get("pipeline") or Configuration().get("intents", {}).get("pipeline", [])
+        # persona's stages go: Emkay no longer ships it (it comes back by the
+        # rule if installed from the control panel)
+        kept = [p for p in before if not p.startswith(PERSONA)]
+        pipeline = _with_plugin(kept, GOOD_MANNERS) or kept
+        if pipeline != list(before):
+            out.setdefault("intents", {})["pipeline"] = pipeline
         # and the room listened to, on the device, for overheard swearing and
         # for how noisy it is (AUDIO_TRANSFORMERS): named in audio_transformers
         # is OVOS' opt-in, and both start enabled; their control panel pages

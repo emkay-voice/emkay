@@ -3,8 +3,33 @@
 # minus the parts that are hardware: listener, audio service, PHAL.
 # Built with `pip wheel --pre`, i.e. the alpha channel.
 
-# core-requirements.txt.j2: ovos-core[plugins], public speech (the installer's default)
-ovos-core[plugins]
+# core-requirements.txt.j2: ovos-core[plugins], public speech (the installer's
+# default). Emkay names the plugins of that group one by one, as it does the
+# skills below, and leaves out what a browser can't use or Emkay doesn't:
+# padacioso (a second padatious, not in the pipeline), the translation
+# plugins (ovos-bidirectional-translation-plugin, ovos-translate-server-plugin:
+# OVOS' translation servers, which a web page may not ask and which would send
+# what you say out of the house; offline translation needs native code) and
+# ovos-persona (no persona is set up, and it brings ovos-openai-plugin along).
+# Any of them can be installed from the control panel. Check against
+# ovos-core's "plugins" extra when it changes.
+ovos-core
+# understanding: the intent engines, common query and OCP
+ovos-adapt-parser
+ovos-padatious
+ovos-m2v-pipeline
+ovos-common-query-pipeline-plugin
+ovos-ocp-pipeline-plugin
+# utterance and intent transformers, as ovos-config turns them on
+ovos-utterance-normalizer
+ovos-utterance-plugin-cancel
+ovos-utterance-corrections-plugin
+keyword-template-matcher
+ahocorasick-ner
+ovos-typed-slots-transformer
+# numbers and dates, for skills and the transformers
+ovos-number-parser
+ovos-date-parser
 ovos-stt-plugin-server
 ovos-tts-plugin-server
 
@@ -64,7 +89,6 @@ ovos-skill-icanhazdadjokes
 # providers (andersenstories.com, grimmstories.com) do not, so they wait.
 ovos-common-reading-pipeline-plugin
 ovos-skill-ovosblog
-ovos-skill-horoscope-readings
 # something to play: OCP's media providers whose sources a browser may read
 # and play (tried in Emkay on 2026-11-17: "play jazz radio", "play the
 # news"); radio-browser stations through pyradios, and the news bulletins
