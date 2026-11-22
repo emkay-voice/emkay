@@ -470,12 +470,15 @@ def _browser_defaults(done: int) -> dict:
         if pipeline != list(before):
             out.setdefault("intents", {})["pipeline"] = pipeline
         # and the room listened to, on the device, for overheard swearing and
-        # for how noisy it is (AUDIO_TRANSFORMERS): named in audio_transformers
-        # is OVOS' opt-in, and both start enabled; their control panel pages
-        # turn them off
-        tx = out.setdefault("audio_transformers", {})
-        for name in AUDIO_TRANSFORMERS:
-            tx.setdefault(name, {})
+        # for how noisy it is (AUDIO_TRANSFORMERS). Named in
+        # listener.audio_transformers is the listener's opt-in (as dinkum
+        # reads it); the plugins read their own settings from the top-level
+        # audio_transformers section (OPM's AudioTransformer), where their
+        # control panel pages write. Both start enabled.
+        for tx in (out.setdefault("listener", {}).setdefault("audio_transformers", {}),
+                   out.setdefault("audio_transformers", {})):
+            for name in AUDIO_TRANSFORMERS:
+                tx.setdefault(name, {})
     user = read_user_config()
     # defaults v3 turned padaos off (a ~30 s regex compile after boot); without
     # it padatious matched "what time is it" to the timer skill. v4 takes
