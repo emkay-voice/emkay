@@ -8,8 +8,32 @@ ovos-core[plugins]
 ovos-stt-plugin-server
 ovos-tts-plugin-server
 
-# skills-requirements.txt.j2 (profile "ovos"): essential, internet and audio skills
-ovos-core[skills-essential,skills-internet,skills-audio]
+# skills-requirements.txt.j2 (profile "ovos") installs ovos-core's
+# skills-essential, skills-internet and skills-audio groups. Emkay lists
+# them by name instead, so a skill that cannot work in a browser is not
+# built, downloaded and loaded only to be blacklisted (boot.py). Left out:
+# ovos-skill-personal (ovos-skill-about-emkay answers as Emkay),
+# ovos-skill-boot-finished (waits for services a browser has not got),
+# ovos-skill-ddg and ovos-skill-wolfie (a web page may not ask them),
+# ovos-skill-speedtest, -ip, -audio-recording, -dictation and -diagnostics
+# (no use in a browser). Any of them can still be installed from the panel.
+# Check against ovos-core's extras when its groups change.
+# essential
+ovos-skill-fallback-unknown
+ovos-skill-alerts
+ovos-skill-date-time
+ovos-skill-hello-world
+ovos-skill-spelling
+ovos-skill-parrot
+ovos-skill-count
+ovos-skill-randomness
+# internet
+ovos-skill-weather
+ovos-skill-wikipedia
+ovos-skill-wikihow
+# audio
+ovos-skill-volume
+ovos-skill-naptime
 
 # audio-requirements.txt.j2: ovos-audio, for its dialog and TTS transformer
 # services only (speech.py); playback is the page's
