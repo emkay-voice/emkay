@@ -93,10 +93,19 @@ try {
   await tapAt(...await inFrame("#menu-toggle"));
   log(`menu open: ${await js(`${doc}.querySelector("nav").classList.contains("open")`)}`);
   log(`links: ${await js(`[...${doc}.querySelectorAll("nav a")].map(a => a.getAttribute("href")).join(" ")`)}`);
-  // Settings sits in the folded "Maintenance" group: open it by touch first
-  await tapAt(...await inFrame('.nav-group[data-group="maintenance"] .nav-fold'));
-  await sleep(500);
-  log(`Maintenance open: ${await js(`${doc}.querySelector('.nav-group[data-group="maintenance"] .nav-fold').getAttribute("aria-expanded")`)}`);
+  // Settings may sit in folded groups (Advanced, Maintenance): open each by touch, outermost first
+  const folds = await js(`(() => { const out = []; let g = ${doc}.querySelector('nav a[href$="/config"]')?.closest(".nav-group[data-group]");
+    while (g) { out.unshift(g.getAttribute("data-group")); g = g.parentElement.closest(".nav-group[data-group]"); } return out; })()`);
+  for (const name of folds || []) {
+    const fold = `.nav-group[data-group="${name}"] > .nav-fold`;
+    if (await js(`${doc}.querySelector('${fold}').getAttribute("aria-expanded")`) !== "true") {
+      await tapAt(...await inFrame(fold));
+      await sleep(500);
+    }
+  }
+  log(`folds open: ${JSON.stringify(folds)}`);
+  await js(`${doc}.querySelector('nav a[href$="/config"]').scrollIntoView({block: "center"}); true`);
+  await sleep(300);
   await tapAt(...await inFrame('nav a[href$="/config"]'));
   await sleep(3000);
   log(`after tapping Settings: ${await js(`${doc}.location.pathname`)} | menu open: ${await js(`${doc}.querySelector("nav")?.classList.contains("open")`)}`);

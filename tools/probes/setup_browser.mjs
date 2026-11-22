@@ -71,6 +71,9 @@ try {
   log(`first start: ${await js(`!document.getElementById("first").hidden && document.getElementById("first").innerText + " | " + document.getElementById("start").innerText`)}`);
   await js(`navigator.serviceWorker.ready.then(() => true)`);
   await js(`document.getElementById("first-setup").click(); true`);
+  // Set up asks where Emkay should think first: here, on this device
+  await until(`!document.getElementById("brain-choice")?.hidden`, 20, "the brain choice");
+  await js(`document.querySelector("#brain-choice .menu-item:nth-of-type(1)").click(); true`);
   const doc = `document.getElementById("panel-frame").contentDocument`;
   await until(`${doc}?.readyState === "complete" && ${doc}.title`, 120, "panel page");
   log("panel open");

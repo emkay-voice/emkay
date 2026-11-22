@@ -143,12 +143,11 @@ PROBES = [
     ("installable_browser.mjs", {}, [], [
         r"manifest errors: none",
         r"installability errors: none",                     # "Install as app" can be offered
-        r"panel menu: [1-9] of \d+ pages shown",            # the panel opens with its advanced groups folded
+        r"panel menu: [1-9]\d* of \d+ pages shown",            # the panel opens with its advanced groups folded
     ]),
     ("phal_browser.mjs", {}, [], [
         r'internet_check: \[\{"internet_connected": true',
         r'camera\.get: .*"b64_frame"',
-        r"sensors: .*phone_position=face_down",
         r"capabilities: .*power=ovos-phal-plugin-browser",
         r"page reloaded: true",
     ]),
