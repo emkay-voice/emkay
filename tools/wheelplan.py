@@ -9,8 +9,11 @@ from pathlib import Path
 
 # native wheels with no WebAssembly build; emkay_mobile/shims stands in
 SHIMMED = {"rapidfuzz", "pystemmer", "pyahocorasick", "marisa-trie", "psutil",
-           "timezonefinder", "pexpect", "ptyprocess", "tokenizers"}
+           "timezonefinder", "pexpect", "ptyprocess", "tokenizers",
+           # onnxruntime-web runs the models (shims/onnxruntime, web/ortshim.js)
+           "onnxruntime"}
 DROPPED = {"hf-xet",               # optional huggingface_hub transfer backend
+           "flatbuffers",          # onnxruntime's, which is shimmed
            "timezonefinder-data",  # data for timezonefinder, which the browser answers itself
            # uvicorn extras: the control panel app is called in-process, not served
            "uvloop", "httptools", "watchfiles", "websockets",

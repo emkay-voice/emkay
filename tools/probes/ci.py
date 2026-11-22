@@ -115,6 +115,9 @@ PROBES = [
         # auto volume measured it, without threads of its own (Pyodide)
         r'room: \{"sent":[1-9]',
         r'"ovos-audio-transformer-plugin-autovolume": [1-9][0-9.]*',
+        # and overheard manners listened, with its model in onnxruntime-web
+        # (shims/onnxruntime) and Emkay's own Whisper as its STT
+        r'"ovos-audio-transformer-plugin-overheard-manners": \{"ready": true',
     ]),
     ("panel_mobile.mjs", {}, [], [
         r"after tapping Settings: /panel/config",       # the panel's menu by touch

@@ -118,7 +118,11 @@ boot.bus().emit(Message("configuration.patch", {"config": {"listener": {"wake_wo
   log(`room: ${await js(`JSON.stringify({sent: window.emkay.room?.sent, dropped: window.emkay.room?.dropped})`).catch((e) => e.message)}`);
   log(`room listeners: ${await py(`import json
 from emkay_mobile import listener
-json.dumps({p.name: round(getattr(p, "_measured", -1), 1) for p in listener.plugins()})`).catch((e) => e.message)}`);
+def state(p):
+    if hasattr(p, "_measured"):      # auto volume: seconds of room measured
+        return round(p._measured, 1)
+    return {"ready": getattr(p, "_ready", None), "off": getattr(p, "_off_reason", None)}
+json.dumps({p.name: state(p) for p in listener.plugins()})`).catch((e) => e.message)}`);
   log("worker log:");
   for (const l of workerLines.slice(-Number(process.env.LINES || 25))) console.log(`  ${l}`);
   ws.close();

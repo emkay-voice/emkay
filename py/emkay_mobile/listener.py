@@ -15,6 +15,11 @@ Audio transformers: like dinkum, the plugins named in
 
 The page sends room audio only while `names()` is not empty, so with no
 transformer no audio crosses over.
+
+A transformer that needs STT on the device (`use_stt`, as
+ovos-audio-transformer-plugin-overheard-manners) gets Emkay's own when that
+runs on the device (Whisper in the browser), so no second model is loaded.
+Never a server, and never the fallback: room audio does not leave the device.
 """
 from ovos_utils.log import LOG
 
@@ -25,6 +30,23 @@ _plugins = None       # loaded transformers, highest priority first
 def _config() -> dict:
     from ovos_config import Configuration
     return Configuration().get("listener", {}).get("audio_transformers") or {}
+
+
+class _DeviceSTT:
+    """Emkay's STT plugin for a transformer, only while it runs on the device.
+    Not speech.transcribe: that may fall back to a server, and logs the text."""
+
+    def execute(self, audio, language=None):
+        from . import speech
+        if not _stt_on_device():
+            return ""
+        return speech.stt().execute(audio, language=language) or ""
+
+
+def _stt_on_device() -> bool:
+    from ovos_config import Configuration
+    from . import speech
+    return Configuration().get("stt", {}).get("module") in speech._ON_DEVICE
 
 
 def load() -> list:
@@ -39,6 +61,8 @@ def load() -> list:
         try:
             p = plug()
             p.bind(_bus)
+            if hasattr(p, "use_stt") and _stt_on_device():
+                p.use_stt(_DeviceSTT())
             loaded.append(p)
             LOG.info(f"loaded audio transformer plugin: {name}")
         except Exception:

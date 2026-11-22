@@ -117,7 +117,7 @@ ovos-skill-jamband
 # AUDIO_TRANSFORMERS, on by default): good manners about swearing overheard
 # (with ovos-good-manners-pipeline-plugin, first in the pipeline, GOOD_MANNERS),
 # and auto volume, with its voice skill
-ovos-audio-transformer-plugin-overheard-manners
+ovos-audio-transformer-plugin-overheard-manners>=0.1.0a3   # works without threads (Pyodide)
 ovos-good-manners-pipeline-plugin
 ovos-audio-transformer-plugin-autovolume>=0.0.1a3   # works without threads (Pyodide)
 ovos-skill-autovolume

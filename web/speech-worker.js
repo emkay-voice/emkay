@@ -1,6 +1,7 @@
 // Emkay – the speech models in a worker of their own.
 //
-// Piper (piper.js), Whisper (whisper.js) and the translation models (mt.js)
+// Piper (piper.js), Whisper (whisper.js), the translation models (mt.js)
+// and the ONNX models of Python plugins (ortshim.js)
 // run ONNX Runtime Web, and opening a model or running it is seconds of CPU.
 // In worker.js that time was taken from Pyodide and OVOS: a question asked
 // while a voice was being opened waited for it (#4). onnxruntime-web's own
@@ -20,7 +21,7 @@ netlog.install({ sink: (entry) => self.postMessage({ kind: "net", entry }) });
 
 globalThis.emkayModelProgress = (...args) => self.postMessage({ kind: "model", args });
 
-const MODULES = { piper: "./piper.js", whisper: "./whisper.js", mt: "./mt.js" };
+const MODULES = { piper: "./piper.js", whisper: "./whisper.js", mt: "./mt.js", ort: "./ortshim.js" };
 
 self.onmessage = async ({ data }) => {
   if (data.kind === "local-only") { netlog.setLocalOnly(data.on); return; }

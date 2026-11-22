@@ -106,6 +106,14 @@ globalThis.emkayWhisper = {
   },
 };
 
+// ONNX models for Python plugins (py/emkay_mobile/shims/onnxruntime, web/ortshim.js):
+// copies, now, of what may be views into Pyodide's memory
+globalThis.emkayOrt = {
+  create: (bytes) => { const own = bytes.slice(); return speechCall("ort", "create", [own], [own.buffer]); },
+  run: (id, names, feeds) => speechCall("ort", "run", [id, [...names],
+    [...feeds].map((f) => ({ name: f.name, type: f.type, dims: [...f.dims], data: f.data.slice() }))]),
+};
+
 // Machine translation for Emkay Dev's "Add language" (web/mt.js), for
 // py/emkay_mobile/translate.py through `js`; loaded the first time it is asked for
 globalThis.emkayMT = {
