@@ -155,6 +155,8 @@ PROBES = [
     ("phal_browser.mjs", {}, [], [
         r'internet_check: \[\{"internet_connected": true',
         r'camera\.get: .*"b64_frame"',
+        r'sensors before: \{"position": "off", "presence": "off", "mic_level": "off", "motion": "off"\}',
+        r'sensors after: \{"states": \{"position": "on".*"position": "55\.9731,12\.4961"',
         r"capabilities: .*power=ovos-phal-plugin-browser",
         r"page reloaded: true",
     ]),
