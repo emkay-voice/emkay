@@ -50,8 +50,9 @@ async function transformers() {
 // times in WebAssembly memory, which never shrinks (onnx-split.js): Røst
 // left 635 MB taken, 358 MB split. transformers.js opens a model split when
 // asked to (use_external_data_format), getting X.onnx and X.onnx_data. In
-// the cache (the same Cache API cache it uses itself) every X.onnx is kept
-// as a small graph and X.onnx_data as its weights:
+// the cache (the same Cache API cache it uses itself) a one-file X.onnx
+// stays as it is and is the weights, and its small graph is kept beside it
+// as X.onnx?graph (splitCached):
 //   * fetch (a download): straight into the cache, never whole into memory,
 //     then split there;
 //   * match (transformers.js also asks it only to see what is there, so it
@@ -89,31 +90,63 @@ function download(store, net, url) {
   });
 }
 
-/** A cached one-file X.onnx made a small graph plus X.onnx_data (nothing when split already). */
+/** Where the graph of a one-file X.onnx split here is kept: X.onnx itself stays as it is. */
+const GRAPH = "?graph";
+
+/**
+ * A cached one-file X.onnx split: its small graph kept as X.onnx?graph, and
+ * X.onnx itself, whole and untouched, is then the weights (X.onnx_data).
+ * Nothing in the cache is overwritten or copied: overwriting X.onnx while
+ * its Blob was open failed on Windows ("Failed to execute 'put' on 'Cache':
+ * Unexpected error"), and the copy took the model's size on disk again.
+ * When it can't be split the model is opened whole, as before.
+ */
 function splitCached(store, url) {
   return once(`split ${url}`, async () => {
-    const res = await store.match(url);
-    if (!res) return;
-    const blob = await res.blob();               // on disk: only the graph's own bytes are read
-    const s = await split(blob, url.split("/").pop() + "_data");
-    if (!s.moved.count) return;
-    await store.put(url + "_data", new Response(blob, { headers: { "content-length": String(blob.size) } }));
-    await store.put(url, new Response(s.graph, { headers: { "content-length": String(s.graph.length) } }));
-    console.log(`[emkay] ${url.split("/resolve/")[0].split("/").slice(-2).join("/")}: ` +
-      `${s.moved.count} weights moved out of ${url.split("/").pop()}`);
+    try {
+      if (await store.match(url + GRAPH)) return;
+      const res = await store.match(url);
+      if (!res) return;
+      const blob = await res.blob();             // on disk: only the graph's own bytes are read
+      const s = await split(blob, url.split("/").pop() + "_data");
+      if (!s.moved.count) return;                // published split already, or nothing to move
+      await store.put(url + GRAPH, new Response(s.graph, { headers: { "content-length": String(s.graph.length) } }));
+      // an earlier Emkay's copy of the weights (whisper.js before this), no longer read
+      await store.delete(url + "_data").catch(() => {});
+      console.log(`[emkay] ${url.split("/resolve/")[0].split("/").slice(-2).join("/")}: ` +
+        `${s.moved.count} weights moved out of ${url.split("/").pop()}`);
+    } catch (e) {
+      console.warn(`[emkay] ${url.split("/").pop()} not split, opened whole:`, e);
+    }
   });
 }
 
 const hub = (url) => /^https?:\/\//.test(url);   // not the local path transformers.js tries first
 const core = (url) => url.slice(0, -"_data".length);
 
+/** The graph for X.onnx: the one split here, else X.onnx as it is. */
+async function graphOf(store, url) {
+  return (await store.match(url + GRAPH)) ?? store.match(url);
+}
+
+/** The weights for X.onnx_data: X.onnx itself when it was split here, else the file of that name. */
+async function dataOf(store, url) {
+  return (await store.match(core(url) + GRAPH)) ? store.match(core(url)) : store.match(url);
+}
+
 /** transformers.js' cache (match, put): .onnx files split, never downloaded here. */
 function splitCache(store) {
   return {
     async match(key) {
       const url = String(key?.url ?? key);
-      if (hub(url) && url.endsWith(".onnx")) await splitCached(store, url);
-      if (hub(url) && url.endsWith(".onnx_data")) await splitCached(store, core(url));
+      if (hub(url) && url.endsWith(".onnx")) {
+        await splitCached(store, url);
+        return graphOf(store, url);
+      }
+      if (hub(url) && url.endsWith(".onnx_data")) {
+        await splitCached(store, core(url));
+        return dataOf(store, url);
+      }
       return store.match(key);
     },
     put: (key, response) => store.put(key, response),
@@ -126,14 +159,22 @@ function splitFetch(store, net) {
     url = String(url);
     const plain = (!init?.method || init.method === "GET") && !new Headers(init?.headers).has("range");
     if (!plain || !hub(url) || !/\.onnx(_data)?$/.test(url)) return net(url, init);
-    if (url.endsWith(".onnx")) {
-      if (!(await download(store, net, url))) return net(url, init);   // its own error
-      await splitCached(store, url);
-      return store.match(url);
+    try {
+      if (url.endsWith(".onnx")) {
+        if (!(await download(store, net, url))) return net(url, init);   // its own error
+        await splitCached(store, url);
+        return graphOf(store, url);
+      }
+      // X.onnx_data: X.onnx first (asked for at the same time), split or not
+      if (await download(store, net, core(url))) await splitCached(store, core(url));
+      if (await store.match(core(url) + GRAPH)) return dataOf(store, url);
+      if (await download(store, net, url)) return store.match(url);
+    } catch (e) {
+      // the cache would not take it (full, or a browser's error): as before,
+      // straight from the network, the model opened whole
+      console.warn(`[emkay] ${url.split("/").pop()} not kept split:`, e);
+      if (url.endsWith(".onnx")) return net(url, init);
     }
-    // X.onnx_data: X.onnx first (asked for at the same time), split or not
-    if (await download(store, net, core(url))) await splitCached(store, core(url));
-    if (await download(store, net, url)) return store.match(url);
     // a model with nothing to move has no data: an empty file, unused
     return new Response(new Uint8Array(0), { status: 200, headers: { "content-length": "0" } });
   };
