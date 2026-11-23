@@ -61,6 +61,7 @@ async function until(expression, seconds, what) {
   throw new Error(`timed out waiting for ${what}`);
 }
 const py = (code) => js(`window.emkay.call("python", {code: ${JSON.stringify(code)}})`);
+const pyAsync = (code) => js(`window.emkay.call("python_async", {code: ${JSON.stringify(code)}})`);
 
 try {
   // no tap on the face: the wake word starts the listening
@@ -116,7 +117,7 @@ boot.bus().emit(Message("configuration.patch", {"config": {"listener": {"wake_wo
 } finally {
   // the audio transformers (listener.py): what the page sent them, and what they made of it
   log(`room: ${await js(`JSON.stringify({sent: window.emkay.room?.sent, dropped: window.emkay.room?.dropped})`).catch((e) => e.message)}`);
-  log(`room listeners: ${await py(`import json
+  log(`room listeners: ${await pyAsync(`import json
 from emkay_mobile import listener
 def state(p):
     if hasattr(p, "_measured"):      # auto volume: seconds of room measured

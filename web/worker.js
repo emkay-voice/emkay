@@ -372,6 +372,8 @@ const commands = {
   },
   /** Run a line of Python and return its value as text (for debugging). */
   python: ({ code }) => String(py.runPython(code)),
+  // the same where the code may wait (JSPI: a model run, pyodide.ffi.run_sync)
+  python_async: async ({ code }) => String(await py.runPythonAsync(code)),
   /** The same through runPythonAsync: Python that may wait (JSPI, issue #20). */
   python_async: async ({ code }) => String(await py.runPythonAsync(code)),
 };
