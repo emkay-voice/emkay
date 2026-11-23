@@ -121,7 +121,19 @@ from emkay_mobile import listener
 def state(p):
     if hasattr(p, "_measured"):      # auto volume: seconds of room measured
         return round(p._measured, 1)
-    return {"ready": getattr(p, "_ready", None), "off": getattr(p, "_off_reason", None)}
+    out = {"ready": getattr(p, "_ready", None), "off": getattr(p, "_off_reason", None)}
+    if out["ready"]:                 # overheard manners: one window through its model, timed
+        import time, numpy as np
+        noise = (np.random.default_rng(1).standard_normal(p.spotter.window_size) * 0.05).astype(np.float32)
+        try:
+            p.spotter.score_window(noise)          # the first opens the session
+            t = time.time()
+            for _ in range(5):
+                scores = p.spotter.score_window(noise)
+            out.update(window_ms=round((time.time() - t) * 200), pronunciations=len(scores))
+        except Exception as e:
+            out["window_error"] = repr(e)[:200]
+    return out
 json.dumps({p.name: state(p) for p in listener.plugins()})`).catch((e) => e.message)}`);
   log("worker log:");
   for (const l of workerLines.slice(-Number(process.env.LINES || 25))) console.log(`  ${l}`);

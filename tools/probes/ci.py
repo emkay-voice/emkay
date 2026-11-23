@@ -118,6 +118,7 @@ PROBES = [
         # and overheard manners listened, with its model in onnxruntime-web
         # (shims/onnxruntime) and Emkay's own Whisper as its STT
         r'"ovos-audio-transformer-plugin-overheard-manners": \{"ready": true',
+        r'"window_ms": [0-9]+, "pronunciations": [1-9]',     # its model really runs (one 1.5 s window, ms)
     ]),
     ("panel_mobile.mjs", {}, [], [
         r"after tapping Settings: /panel/config",       # the panel's menu by touch
