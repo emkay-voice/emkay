@@ -126,6 +126,7 @@ async function message(r, start, end, kind, location, moved) {
     pieces.push(r.bytes(at, pos - at));
   }
   if (raw && external) throw new Error("a tensor with both raw_data and external_data");
+  if (external) moved.external++;
   if (raw) {
     pieces.push(...entry("location", location), ...entry("offset", raw[0]), ...entry("length", raw[1]),
       putVarint(14 * 8), putVarint(1));          // data_location: EXTERNAL
@@ -140,15 +141,19 @@ async function message(r, start, end, kind, location, moved) {
  * given to onnxruntime as externalData's path. `data` is `src` itself (as a
  * Uint8Array or Blob): keep no other reference to it, so it can go once the
  * session is made. moved.count is 0 when there was nothing to move (a model
- * that is split already, or a tiny one): then open `data` as it is.
+ * that is split already – moved.external – or a tiny one): then use `data` as
+ * it is.
  */
 export async function split(src, location = "model.onnx_data") {
   if (!(src instanceof Blob) && !(src instanceof Uint8Array)) {
     src = ArrayBuffer.isView(src) ? new Uint8Array(src.buffer, src.byteOffset, src.byteLength) : new Uint8Array(src);
   }
   const r = new Reader(src);
-  const moved = { count: 0, bytes: 0 };
+  const moved = { count: 0, bytes: 0, external: 0 };
   const graph = concat(await message(r, 0, r.size, "model", location, moved));
+  // published split already (its weights in a file of its own, a few small
+  // ones maybe still inside): left as it is, its own data file is the data
+  if (moved.external) return { graph: null, data: src, moved: { count: 0, bytes: 0, external: moved.external } };
   return { graph, data: src, moved };
 }
 

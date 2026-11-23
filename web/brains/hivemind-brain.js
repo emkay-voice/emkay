@@ -45,7 +45,15 @@ const VOICES = {
 export const voiceFor = (lang) => VOICES[lang.toLowerCase()]
   || Object.entries(VOICES).find(([k]) => k.split("-")[0] === lang.split("-")[0].toLowerCase())?.[1];
 const STT_MODELS = { en: "onnx-community/whisper-base.en", da: "emkay-voice/roest-wav2vec2-315m-onnx" };
-export const sttModelFor = (lang) => STT_MODELS[lang.split("-")[0].toLowerCase()] || "onnx-community/whisper-base";
+// as ovos-stt-plugin-whisper-browser's LIGHT_MODELS, for a device with little
+// memory: under 8 GB as the browser reports it, or nothing reported (boot.py
+// _small_device); Røst closed the page on a 4 GB tablet
+const LIGHT_STT_MODELS = { da: "emkay-voice/alvenir-wav2vec2-base-da-onnx" };
+const small = () => !(Number(self.navigator?.deviceMemory) >= 8);
+export const sttModelFor = (lang) => {
+  const base = lang.split("-")[0].toLowerCase();
+  return (small() && LIGHT_STT_MODELS[base]) || STT_MODELS[base] || "onnx-community/whisper-base";
+};
 
 /**
  * The mouth: visemes from the text, spread evenly over the audio – as

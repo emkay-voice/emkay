@@ -309,8 +309,9 @@ def prewarm():
     try:
         if stt_cfg.get("module") == "ovos-stt-plugin-whisper-browser":
             from ovos_stt_plugin_whisper_browser import model_for
-            model = (stt_cfg.get("ovos-stt-plugin-whisper-browser") or {}).get("model") \
-                or model_for(lang.split("-")[0].lower())
+            plugin_cfg = stt_cfg.get("ovos-stt-plugin-whisper-browser") or {}
+            model = plugin_cfg.get("model") \
+                or model_for(lang.split("-")[0].lower(), bool(plugin_cfg.get("light")))   # boot.py v17
             js.emkayWhisper.ready(model)          # starts the download; not awaited
     except Exception as e:
         print(f"[emkay] stt prewarm: {e!r}")

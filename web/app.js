@@ -392,12 +392,37 @@ async function keepStorage() {
  * served from the house (shown in the same place as the local panel). */
 let housePanel = null;
 
+// ------------------------------------------- a start that closed the page
+/**
+ * A browser closes a tab that takes more memory than it allows; on a small
+ * device that happened while the ears (the STT model) opened, and the page
+ * started over and closed again. A mark is left in localStorage from the
+ * start until the ears are ready, and taken away when the page is left
+ * (reload, another page, closed); one still there at the next start means
+ * the last start ended with the page closed by the browser. boot.py then
+ * uses the light STT model, and the page says so (info.light_after_crash).
+ */
+const opening = {
+  KEY: "emkay.opening",
+  /** Whether the last start ended without the page being left. */
+  crashed: (() => { try { return !!localStorage.getItem("emkay.opening"); } catch { return false; } })(),
+  start() {
+    try { localStorage.setItem(this.KEY, String(Date.now())); } catch {}
+    addEventListener("pagehide", () => this.done());
+  },
+  done() { try { localStorage.removeItem(this.KEY); } catch {} },
+};
+opening.start();
+
 (async () => {
   try {
     keepStorage();
-    const info = await call("boot", { userConfig: null });
+    const info = await call("boot", { userConfig: null, crashed: opening.crashed });
+    // no ears on the device to wait for (a server, another brain): nothing can close the page there
+    if (!/whisper-browser/.test(info.stt_module || "")) opening.done();
     console.log("[emkay] OVOS up", info);
     setLang(info.lang);   // from here on Emkay's texts follow OVOS' language
+    if (info.light_after_crash) caption(t("light.after_crash"), null, 9000);
     bootInfo = info;
     ovosLang = info.lang || ovosLang;
     sttModule = info.stt_module;
@@ -1035,6 +1060,7 @@ const modelStatus = {
       $("model-status-interim").hidden = true;
       privacy.ready(what);
       speechWait.ready(what);
+      if (what === "stt") opening.done();   // the ears opened: this start did not end there
     }
     if (state === "error") speechWait.fail(what);
     if (!this.shown.has(key) && state === "ready") return;   // came from the cache: nothing to say
