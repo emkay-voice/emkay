@@ -80,8 +80,6 @@ def start(js_post, user_config=None) -> str:
     info["room_listeners"] = listener.names()   # the page sends room audio only to these
     _start_audio_service(bus)
     boot.report("boot.services", 0.6)
-    from . import panel
-    panel.follow_sensors(bus)                          # before the first reading
     # the phone's "hardware", also kiosk and local only (#23): the skills
     # send hardware-neutral bus messages, the plugin does the browser part
     phal.start(bus, lambda raw: _post("phal", raw), reload_speech=speech.reload)

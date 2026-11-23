@@ -138,12 +138,9 @@ ovos-skill-kiosk
 # Assistant") says HA is there, so without HA it costs nothing
 ovos-assist-pipeline-plugin
 
-# the setup page: the stock OpenVoiceOS control panel. Held at 0.0.1a58
-# while its pages move out of the core (System, Sensors, Media, ...): newer
-# alphas no longer have ovos_webui.sensors or the System page that
-# panel.py (follow_sensors, _browser_capabilities) leans on. Let go once
-# Emkay follows the new panel.
-ovos-control-panel==0.0.1a58
+# the setup page: the stock OpenVoiceOS control panel, with Emkay's look,
+# guide and menu from configuration (boot.py, DISTRIBUTION)
+ovos-control-panel
 
 # Emkay's own browser plugins, each its own package (emkay-voice/<name>):
 # the browser's speech recognition, Piper voices in WebAssembly, the

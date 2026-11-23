@@ -21,9 +21,8 @@ const $ = (id) => document.getElementById(id);
 apply();                    // the phone's language until OVOS is up
 $("boot-text").textContent = t("boot.loading");   // bootStatus' own line from here on
 onLangChange(() => { apply(); bootStatus(lastStatus.key, undefined, lastStatus.vars); });
-/** The privacy chip by ⚙ (privacy.js); a tap opens ⚙ → Settings at its three lines. */
+/** The privacy chip by ⚙ (privacy.js); a tap opens ⚙ at its three lines, on top. */
 const privacy = createPrivacy({ t, $, openSettings: () => {
-  menuPage(true);
   $("menu").hidden = false;
   $("privacy").classList.remove("flash");
   void $("privacy").offsetWidth;           // restart the animation
@@ -107,6 +106,10 @@ $("menu-panel").hidden = !brain.can.panel;
 $("menu-store").hidden = !brain.can.store;
 $("menu-network").hidden = !brain.can.netlog;
 $("storage-state").hidden = !brain.can.panel;   // "take a backup (Settings → Backup)" is the panel's
+// full screen is the kiosk page of Emkay's own panel (and "go full screen"
+// by voice); a satellite's panel is the house's, which can't reach this
+// screen, so it keeps the entry in the menu
+$("menu-kiosk").hidden = brain.can.panel;
 // "Where should Emkay think?" – on top of the menu, in every brain
 const showBrainHint = () => { $("menu-brain-hint").textContent = brainHint(brain.kind); };
 showBrainHint();
@@ -302,6 +305,8 @@ async function start() {
   $("boot").hidden = true;
   for (const id of ["mic", "keyboard", "menu-button"]) $(id).hidden = false;
   started = true;
+  // installing as an app is offered once, a little after the face is up
+  setTimeout(offerInstall, 20000);
   // a browser that can't run Emkay's own ears and voice (no JSPI) is told so
   // now, not the first time someone speaks to an Emkay that can't hear
   for (const what of bootInfo?.speech_blocked || []) speechWait.show({ what, reason: "browser" });
@@ -312,9 +317,12 @@ async function start() {
 const WELCOMED = "emkay-welcomed";
 
 /**
- * The first time Emkay starts in this browser, offer the control panel's
- * own setup wizard (/setup) next to starting on the defaults. Either
- * choice is remembered; the wizard stays in the ⚙ menu.
+ * The first time Emkay starts in this browser: start on the defaults (the
+ * big button: Emkay always works without setup), or set up. Setting up
+ * asks first where Emkay should think; on this device it goes on to the
+ * control panel's own guide (/setup), with the steps Emkay chose for it
+ * (boot.py, DISTRIBUTION); the house or Home Assistant start Emkay again
+ * there. Either choice is remembered; the guide stays in the control panel.
  */
 function offerSetup() {
   let first = false;
@@ -322,21 +330,18 @@ function offerSetup() {
   if (devMode) first = false;   // a dev Emkay starts on the defaults, every time
   const remember = () => { try { localStorage.setItem(WELCOMED, "1"); } catch {} };
   $("start").onclick = () => { remember(); start(); };
-  if (!first) return;
-  // or an assistant in the house instead (local only: elsewhere it was chosen)
-  if (brain.kind === "local") {
-    $("first-house").hidden = false;
-    $("first-house").onclick = () => chooseBrain(brain.kind);
-  }
-  if (!brain.can.panel) return;   // the setup wizard is the local OVOS' control panel
+  if (!first || brain.kind !== "local") return;   // elsewhere the brain was chosen already
   $("start").dataset.i18n = "start.defaults";
   apply();
-  $("start").classList.add("quiet");
   $("first").hidden = false;
-  $("first-setup").onclick = async () => {
+  $("first-setup").hidden = false;
+  $("first-setup").onclick = () => {
     remember();
-    await start();
-    openPanel("setup");
+    // "here on this device" (or closing) goes on to the guide
+    chooseBrain(brain.kind, async () => {
+      await start();
+      if (brain.can.panel) openPanel("setup");
+    });
   };
 }
 
@@ -400,7 +405,7 @@ let housePanel = null;
     ovosReady();
     showVisage();
     if (brain.kind === "local") bootStatus("boot.skills", 1, { n: info.skills.length });
-    // a satellite of an Emkay Home: ⚙ → Settings is the house's control panel,
+    // a satellite of an Emkay Home: ⚙ → Control panel is the house's control panel,
     // shown the same way as the local OVOS' own – over the face, with × –
     // when Emkay comes from the house itself (the house lets only its own
     // Emkay frame it); from elsewhere (app.emkay.ai) in a window of its own
@@ -1432,41 +1437,49 @@ $("panel-close").onclick = () => closeView("panel");
 
 // ------------------------------------------------------------------ menu
 $("menu-panel").onclick = () => openFromMenu("panel", () => openPanel());
-/** The menu's two pages: the main one, and Settings (where Emkay thinks, the control panel, developers' GitHub). */
-function menuPage(settings) {
-  $("menu-main").hidden = settings;
-  $("menu-settings-page").hidden = !settings;
-}
-$("menu-button").onclick = () => { if ($("menu").hidden) menuPage(false); $("menu").hidden = !$("menu").hidden; };
-$("menu-settings").onclick = () => menuPage(true);
-$("menu-back").onclick = () => menuPage(false);
+$("menu-button").onclick = () => { $("menu").hidden = !$("menu").hidden; };
 $("menu-close").onclick = () => { $("menu").hidden = true; };
 $("menu-kiosk").onclick = () => { kiosk = true; enterKiosk(); $("menu").hidden = true; };
 
 // ------------------------------------------------------- install as an app
 // Chrome, Edge and Android offer installing a site with a manifest
 // (manifest.webmanifest: full screen, the face's icon) and fire
-// beforeinstallprompt; the menu then has "Install as app", which asks the
-// browser to show its own install dialog. iOS has no such event: Safari
-// installs from Share → "Add to Home Screen", so the menu says that. Once
-// Emkay runs as an installed app, neither shows.
+// beforeinstallprompt; Emkay then offers it once, in a small tip by ⚙,
+// which asks the browser to show its own install dialog. iOS has no such
+// event: Safari installs from Share → "Add to Home Screen", so the tip says
+// that. Not now is remembered; "install yourself as an app" by voice
+// (ovos-skill-kiosk) still works. Once Emkay runs as an installed app,
+// nothing shows.
 const installed = () => matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches
   || navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const INSTALL_TIP = "emkay-install-tip";
 let installPrompt = null;
-addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();          // no mini-infobar: the menu offers it
-  installPrompt = e;
-  $("menu-install").hidden = installed();
-});
-addEventListener("appinstalled", () => { installPrompt = null; $("menu-install").hidden = true; });
-$("menu-install").onclick = async () => {
+async function installApp() {
   if (!installPrompt) return;
   installPrompt.prompt();
   await installPrompt.userChoice.catch(() => {});
   installPrompt = null;
-  $("menu-install").hidden = true;   // the menu stays: installing is done in the browser's dialog
-};
-if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !installed()) $("install-ios").hidden = false;
+}
+function offerInstall() {
+  let seen = false;
+  try { seen = !!localStorage.getItem(INSTALL_TIP); } catch {}
+  if (seen || installed() || devMode || !started || !(installPrompt || isIOS)) return;
+  const tip = $("install-tip");
+  const close = () => { tip.hidden = true; try { localStorage.setItem(INSTALL_TIP, "1"); } catch {} };
+  $("install-tip-text").dataset.i18n = isIOS && !installPrompt ? "install.ios" : "menu.install.hint";
+  apply(tip);
+  $("install-tip-yes").hidden = !installPrompt;
+  $("install-tip-yes").onclick = async () => { close(); await installApp(); };
+  $("install-tip-no").onclick = close;
+  tip.hidden = false;
+}
+addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();          // no mini-infobar: Emkay offers it in its tip
+  installPrompt = e;
+  offerInstall();
+});
+addEventListener("appinstalled", () => { installPrompt = null; $("install-tip").hidden = true; });
 
 // --------------------------------------------------------------- version
 /**
@@ -1505,7 +1518,8 @@ $("about-close").onclick = () => closeView("about");
  */
 const busSend = (type, data) => brain.emit(type, data);
 const kioskState = () => ({ fullscreen: !!document.fullscreenElement, keep_awake: wakeLockOn,
-  installed: installed(), can_install: !!installPrompt });
+  installed: installed(), can_install: !!installPrompt,
+  supported: !!document.documentElement.requestFullscreen, ios: isIOS });
 
 function tapToDo(label, action) {
   const button = $("tap-action");
@@ -1536,10 +1550,10 @@ function onKiosk(msg) {
     case "ovos.kiosk.install":
       if (installed()) return reply();
       if (installPrompt) {
-        tapToDo(t("kiosk.tap.install"), async () => { $("menu-install").onclick(); done(); });
+        tapToDo(t("kiosk.tap.install"), async () => { await installApp(); done(); });
         return reply({ needs_tap: true });
       }
-      return reply({ supported: false, ios: /iphone|ipad|ipod/i.test(navigator.userAgent) });
+      return reply({ supported: false });
     case "ovos.kiosk.status":
       return reply();
   }
@@ -1791,9 +1805,16 @@ $("gh-link").onsubmit = (e) => {
   openGithub(spec);
 };
 $("gh-link-text").oninput = () => $("gh-link-text").setCustomValidity("");
-// for developers (Emkay Dev): skills are installed from the store, so this is under Settings
+// for developers (Emkay Dev mostly sends skills this way): skills are
+// installed from the store, so this is under About
 $("menu-dev").hidden = !brain.can.install;
-$("menu-github").onclick = () => { fromMenu.add("github"); $("gh-install").hidden = false; openGithub(); };
+$("menu-github").onclick = () => {
+  $("about").hidden = true;
+  fromMenu.delete("about");
+  fromMenu.add("github");
+  $("gh-install").hidden = false;
+  openGithub();
+};
 $("github-close").onclick = () => { ghOffered = null; closeView("github"); };
 
 // ------------------------------------------------------- what's happening

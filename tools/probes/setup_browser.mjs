@@ -73,6 +73,9 @@ try {
   log(`first start: ${await js(`!document.getElementById("first").hidden && document.getElementById("first").innerText + " | " + document.getElementById("start").innerText`)}`);
   await js(`navigator.serviceWorker.ready.then(() => true)`);
   await js(`document.getElementById("first-setup").click(); true`);
+  // Set up asks where Emkay should think first: here, on this device
+  await until(`!document.getElementById("brain-choice")?.hidden`, 20, "the brain choice");
+  await js(`document.querySelector("#brain-choice .menu-item:nth-of-type(1)").click(); true`);
   const doc = `document.getElementById("panel-frame").contentDocument`;
   await until(`${doc}?.readyState === "complete" && ${doc}.title`, 120, "panel page");
   log("panel open");
@@ -88,7 +91,8 @@ try {
     log(`${p}: ${JSON.stringify(await api("GET", p)).slice(0, 900)}`);
   await until(`${doc}?.querySelector("#recommended") && !/Loading/.test(${doc}.querySelector("#recommended").textContent)`, 60, "setup page");
   await sleep(3000);
-  log(`wake step shown: ${await js(`getComputedStyle(${doc}.querySelector("#wake-test").closest(".card")).display !== "none"`)}`);
+  // Emkay's guide (webui.setup in boot.py) leaves the wake word test out
+  log(`wake step shown: ${await js(`${doc}.querySelector("#wake-test").closest(".card").offsetParent !== null`)}`);
   log(`setup url: ${await js(`${w}.location.href`)}`);
   log("setup text:\n" + await js(`${doc}.querySelector("main").innerText`));
   const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });

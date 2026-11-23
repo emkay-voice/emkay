@@ -113,6 +113,36 @@ PERSONA = "ovos-persona-pipeline-plugin"
 AUDIO_TRANSFORMERS = ("ovos-audio-transformer-plugin-overheard-manners",
                       "ovos-audio-transformer-plugin-autovolume")
 
+#: Emkay as a distribution of OpenVoiceOS: what it sets in mycroft.conf's
+#: system layer, below the user's, as a distribution's image would in
+#: /etc/mycroft. Written on every boot, so it follows the site; whatever the
+#: user chooses (the control panel's own Control panel page) goes in the user
+#: layer and wins, and "Back to the default" brings Emkay's back.
+#: - the control panel wears Emkay's name, eyes and dark palette (the same as
+#:   the boot screen and the visage, and as Emkay Home's panel)
+#: - its Setup guide has the steps that make sense in a browser: no wake
+#:   word test (the panel's own test listens for a device's listener);
+#:   where Emkay thinks is asked before it, on the first start (app.js)
+EMKAY_COLORS = {
+    "bg": "#05070a", "bg-soft": "#000000", "card": "#141b24", "card-soft": "#1d232b",
+    "ink": "#ffffff", "muted": "#8a96a8", "line": "#232c38",
+    "accent": "#22a7f0", "accent-strong": "#1478c8", "accent-hover": "#0f6ab3",
+    "accent-ink": "#ffffff", "accent-wash": "rgba(34, 167, 240, 0.15)",
+    "ok": "#3ddc84", "warn": "#ffc93c", "bad": "#ff5c5c",
+}
+#: Emkay's eyes (web/icon.svg), for the panel's header
+EMKAY_LOGO = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" '
+              'rx="96" fill="#000"/><g fill="none" stroke-width="30" stroke-linecap="round"><circle cx="166" '
+              'cy="210" r="56" stroke="#555"/><path d="M110 210a56 56 0 0 1 112 0" stroke="#fff"/><circle '
+              'cx="346" cy="210" r="56" stroke="#555"/><path d="M290 210a56 56 0 0 1 112 0" stroke="#fff"/>'
+              '<path d="M186 352q70 50 140 0" stroke="#fff"/></g></svg>')
+LOGO_PATH = os.path.expanduser("~/.local/share/emkay-mobile/logo.svg")
+DISTRIBUTION = {"webui": {
+    "branding": {"name": "Emkay", "logo": LOGO_PATH, "colors_dark": EMKAY_COLORS},
+    "theme": "dark",
+    "setup": {"steps": ["token", "language", "voice", "speak", "tryit"]},
+}}
+
 #: The user layer of mycroft.conf, as on a device (~/.config/mycroft).
 CONF_PATH = os.path.expanduser("~/.config/mycroft/mycroft.conf")
 
@@ -704,6 +734,20 @@ def _browser_installer():
     SkillsStore.UV = None   # the command line it builds is then plain pip's
 
 
+def _distribution_layer() -> None:
+    """Write Emkay's system layer (DISTRIBUTION) and the logo it names."""
+    from ovos_config.locations import SYSTEM_CONFIG
+    try:
+        os.makedirs(os.path.dirname(LOGO_PATH), exist_ok=True)
+        with open(LOGO_PATH, "w", encoding="utf-8") as f:
+            f.write(EMKAY_LOGO)
+        os.makedirs(os.path.dirname(SYSTEM_CONFIG), exist_ok=True)
+        with open(SYSTEM_CONFIG, "w", encoding="utf-8") as f:
+            json.dump(DISTRIBUTION, f, indent=1)
+    except OSError as e:   # the panel then looks like OpenVoiceOS' own
+        print(f"[emkay] system layer not written: {e!r}")
+
+
 def start(on_message=None, user_config=None) -> dict:
     """Load every installed skill on a fresh bus.
 
@@ -717,6 +761,7 @@ def start(on_message=None, user_config=None) -> dict:
     """
     global _bus, _manager
     t0 = time.time()
+    _distribution_layer()    # before anything reads the configuration
     if user_config:
         write_user_config(user_config)
     from ovos_config import Configuration

@@ -99,13 +99,6 @@ json.dumps(builtins.PICS) + " file bytes " + str(os.path.getsize(p) if os.path.e
   const doc = `document.getElementById("panel-frame").contentDocument`;
   await until(`${doc}?.readyState === "complete" && ${doc}.title`, 120, "panel page");
   const api = (method, path, body) => js(`${w}.fetch("${path}", {method: "${method}", headers: {"content-type": "application/json"}${body ? `, body: JSON.stringify(${JSON.stringify(body)})` : ""}}).then(async r => r.status + " " + (await r.text()))`);
-  // the sensor log attaches on the first visit; report again so it sees readings
-  await api("GET", "/api/sensors");
-  // the phone laid face down (a desktop has no orientation sensor)
-  await js(`dispatchEvent(new DeviceOrientationEvent("deviceorientation", {alpha: 0, beta: 175, gamma: 3})); true`);
-  await sleep(2000);
-  const sensors = JSON.parse((await api("GET", "/api/sensors")).replace(/^\d+ /, "")).sensors;
-  log(`sensors: ${sensors.map((x) => `${x.sensor_id}=${x.state}`).join(" ")}`);
   const caps = JSON.parse((await api("GET", "/api/device/capabilities")).replace(/^\d+ /, ""));
   log(`capabilities: ${Object.entries(caps.capabilities).map(([k, v]) => `${k}=${v.installed ? v.provider : "-"}`).join(" ")}`);
   log(`set token: ${await api("POST", "/api/auth/token", { new: "emkay-test-token" })}`);

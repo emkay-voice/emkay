@@ -15,7 +15,7 @@
 // elsewhere it is amber and stays a moment longer. The wake word itself is
 // always on the device and gets no marker of its own.
 //
-// A tap opens ⚙ → Settings, where the same three lines sit at the top above
+// A tap opens ⚙, where the same three lines sit at the top above
 // the settings that change them (where Emkay thinks, the control panel).
 //
 // Where things go comes from the brain: the local OVOS says which speech
@@ -89,7 +89,7 @@ export function whereOf(part) {
  * @param {object} o
  * @param {(key: string, vars?: object) => string} o.t
  * @param {(id: string) => HTMLElement} o.$
- * @param {() => void} o.openSettings   opens ⚙ → Settings
+ * @param {() => void} o.openSettings   opens ⚙ at its three lines
  */
 export function createPrivacy({ t, $, openSettings }) {
   const chip = $("privacy-chip");

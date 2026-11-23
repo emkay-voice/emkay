@@ -60,11 +60,11 @@ const texts = (sel) => js(`[...document.querySelectorAll(${JSON.stringify(sel)})
 try {
   await send("Runtime.enable");
   await send("Page.navigate", { url });
-  await until(visible("#first-house"), 400, "the first start's choices (local OVOS booted)");
+  await until(visible("#first-setup"), 400, "the first start's choices (local OVOS booted)");
   log(`first start: ${JSON.stringify(await texts("#boot button:not([hidden])"))}`);
   await shot("1-first-start");
 
-  await click("#first-house");
+  await click("#first-setup");   // Set up asks where Emkay should think first
   await until(visible("#brain-choice"), 10, "the choice");
   log(`choice: ${JSON.stringify(await texts("#brain-choice .menu-item"))}`);
   log(`disabled: ${JSON.stringify(await js(`[...document.querySelectorAll("#brain-choice .menu-item")].map((b) => b.disabled)`))}`);
@@ -103,7 +103,7 @@ try {
     password: ${JSON.stringify(process.env.HM_PASSWORD)} })); localStorage.setItem("emkay-brain", "hivemind"); location.reload(); true`);
   await sleep(1500);
   await until(`!!document.getElementById("visage2") && !document.getElementById("start").hidden`, 60, "the satellite to start");
-  log(`satellite boot: ${await js(`document.getElementById("boot-text").textContent`)}; first-house shown: ${await js(visible("#first-house"))}`);
+  log(`satellite boot: ${await js(`document.getElementById("boot-text").textContent`)}; set up shown: ${await js(visible("#first-setup"))}`);
   await js(`document.getElementById("start").click(); true`);
   await sleep(1500);
   await js(`document.getElementById("menu").hidden = false; true`);
