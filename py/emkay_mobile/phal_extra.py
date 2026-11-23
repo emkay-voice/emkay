@@ -5,7 +5,9 @@ ovos-phal-plugin-browser its plugin (worker_main.py). A PHAL plugin
 installed later (the panel's Plugins page, the store, ovos.pip.install) was
 therefore never started. This starts one when its install completes, and
 again at every boot after that: the plugins are remembered by their entry
-point names in the state folder, which Emkay keeps.
+point names in the state folder, which Emkay keeps. The ones Emkay ships with
+(SHIPPED, from requirements/browser.txt) start at every boot as well - they
+were never installed, so never remembered.
 
 Each is made as the PHAL service makes it: its validator asked whether it
 fits this device, then the class with the bus and its part of the
@@ -19,6 +21,9 @@ import json
 from pathlib import Path
 
 BUILT_IN = {"ovos-phal-plugin-browser"}
+#: in Emkay's build (requirements/browser.txt): the MIDI instrument that
+#: karaoke, the jam band and the music teacher play on
+SHIPPED = ("ovos-phal-plugin-midi",)
 _running: dict = {}
 _known: set | None = None    # the entry points there were before an install
 
@@ -71,11 +76,12 @@ def _start(bus, name, cls) -> bool:
 
 
 def start(bus):
-    """At boot: the plugins installed before; then follow new installs."""
+    """At boot: the plugins Emkay ships with and those installed before; then
+    follow new installs."""
     global _known
     found = _entry_points()
     _known = set(found)
-    for name in _remembered():
+    for name in list(SHIPPED) + _remembered():
         if name in found:
             _start(bus, name, found[name])
     bus.on("ovos.pip.install.complete", lambda _m: installed(bus))
