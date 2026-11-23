@@ -76,8 +76,11 @@ def start(js_post, user_config=None) -> str:
     print(f"[emkay] gui up in {time.time() - t:.1f}s")
     boot.report("boot.services", 0.3)
     speech.start(bus, lambda wav, meta: _post("audio", json.dumps(meta), wav))
-    listener.start(bus)     # the audio transformers (listener.py)
-    info["room_listeners"] = listener.names()   # the page sends room audio only to these
+    # the audio transformers (listener.py) load a moment after the start;
+    # then the page is told which want the room audio (emkay.room)
+    listener.start(bus, lambda names: _post("bus", json.dumps(
+        {"type": "emkay.room", "data": {"names": names}})))
+    info["room_listeners"] = []
     _start_audio_service(bus)
     boot.report("boot.services", 0.6)
     # the phone's "hardware", also kiosk and local only (#23): the skills

@@ -25,6 +25,10 @@ from ovos_utils.log import LOG
 
 _bus = None
 _plugins = None       # loaded transformers, highest priority first
+_announce = None      # callable(names): tells the page which want the room audio
+#: seconds after the start before the transformers load: a model one fetches
+#: or opens (overheard manners') must not make the start any longer
+LOAD_AFTER = 5.0
 
 
 def _config() -> dict:
@@ -53,6 +57,8 @@ def load() -> list:
     """The audio transformers, as dinkum's AudioTransformersService loads them."""
     global _plugins
     from ovos_plugin_manager.audio_transformers import find_audio_transformer_plugins
+    from . import hf_site
+    hf_site.install()     # the models they ask Hugging Face for come from the site
     config = _config()
     loaded = []
     for name, plug in find_audio_transformer_plugins().items():
@@ -72,7 +78,8 @@ def load() -> list:
 
 
 def plugins() -> list:
-    return _plugins if _plugins is not None else load()
+    """The loaded transformers ([] until they have loaded, after the start)."""
+    return _plugins or []
 
 
 def names() -> list:
@@ -117,10 +124,22 @@ def reload() -> list:
         except Exception as e:
             LOG.warning(e)
     _plugins = None
-    return load()
-
-
-def start(bus):
-    global _bus
-    _bus = bus
     load()
+    return _plugins
+
+
+def _load_and_announce():
+    try:
+        load()
+    except Exception:
+        LOG.exception("audio transformers could not load")
+    if _announce:
+        _announce(names())
+
+
+def start(bus, announce=None):
+    """After the start (LOAD_AFTER): load the transformers, then tell the page."""
+    global _bus, _announce
+    _bus, _announce = bus, announce
+    import asyncio
+    asyncio.get_event_loop().call_later(LOAD_AFTER, _load_and_announce)

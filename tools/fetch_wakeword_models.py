@@ -15,6 +15,13 @@ OVOS' config names for it (hotwords.<name>.module):
   emkay-voice/hey-emkay-wakeword's releases (CC BY-NC-SA 4.0, as
   openWakeWord's own, because of the training data).
 
+* WakePhoneHuBERT (TigreGotico/wakephonehubert, Apache-2.0), the model of
+  ovos-ww-plugin-wakeforge's zero-shot engine, which
+  ovos-audio-transformer-plugin-overheard-manners listens with. Into
+  OUT_DIR/hf/<repo>/<revision>/, at the revision wakeforge pins: a browser
+  can't use Hugging Face's own download (huggingface_hub needs headers a
+  page may not read), so py/emkay_mobile/hf_site.py fetches it from here.
+
 Usage: python3 tools/fetch_wakeword_models.py OUT_DIR
 """
 import sys
@@ -44,6 +51,15 @@ PRECISE_MODELS = {
 }
 PRECISE_RAW = "https://raw.githubusercontent.com/OpenVoiceOS/precise-lite-models/master/wakewords/"
 
+#: Hugging Face files the site ships: (repo, revision, file name). The
+#: revision is the one ovos-ww-plugin-wakeforge pins (PRETRAINED_FEATURIZERS).
+HF = "https://huggingface.co/{repo}/resolve/{rev}/{name}"
+HF_FILES = [
+    ("TigreGotico/wakephonehubert", "343b2497cb0ef0310d163eb53e3f0f817260dbf7", "config.json"),
+    ("TigreGotico/wakephonehubert", "343b2497cb0ef0310d163eb53e3f0f817260dbf7",
+     "wakephonehubert_features_int8.onnx"),
+]
+
 
 def get(url: str, target: Path):
     if not target.exists():
@@ -63,6 +79,8 @@ if __name__ == "__main__":
         get(PRECISE_JS + name, out / "precise" / Path(name).name)
     for local in PRECISE_MODELS.values():
         get(PRECISE_RAW + local, out / "precise" / local)
+    for repo, rev, name in HF_FILES:
+        get(HF.format(repo=repo, rev=rev, name=name), out / "hf" / repo / rev / name)
     # which configured model URL is which local file (the page reads it)
     import json
     (out / "precise" / "models.json").write_text(json.dumps(PRECISE_MODELS, indent=1))
