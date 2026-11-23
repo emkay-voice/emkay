@@ -140,7 +140,7 @@ ovos-assist-pipeline-plugin
 
 # the setup page: the stock OpenVoiceOS control panel, with Emkay's look,
 # guide and menu from configuration (boot.py, DISTRIBUTION)
-ovos-control-panel
+ovos-control-panel>=0.0.1a103   # webui.companions, "provides", pages that need a plugin
 
 # Emkay's own browser plugins, each its own package (emkay-voice/<name>):
 # the browser's speech recognition, Piper voices in WebAssembly, the

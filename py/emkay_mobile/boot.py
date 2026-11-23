@@ -151,6 +151,13 @@ DISTRIBUTION = {"webui": {
     "recommends": RECOMMENDS_PATH,
     # no ovos-media in a browser: OCP plays through ovos-audio (the page)
     "absent_services": ["media"],
+    # the device controls come from the browser PHAL plugin ("provides" in
+    # its controlpanel.json); none of the companions (Wi-Fi, ggwave) can be
+    # installed in a browser, so none is offered
+    "companions": [],
+    # ovos-media-provider-local's own page (its folders, ~/Music) has no
+    # use here: Emkay's Local media page chooses the folder (#108)
+    "pages": {"disabled": ["media-local"]},
 }}
 
 #: The user layer of mycroft.conf, as on a device (~/.config/mycroft).
