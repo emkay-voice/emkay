@@ -1,0 +1,20 @@
+{
+ "lm.title": "Lokale Medien",
+ "lm.intro": "Spiele deine eigene Musik aus einem Ordner auf diesem Gerät: \"spiele <Lied>\", \"spiele etwas von <Künstler>\". Die Dateien werden dort abgespielt, wo sie liegen; nichts wird kopiert, nichts verlässt das Gerät.",
+ "lm.now": "Jetzt",
+ "lm.folder": "Ordner",
+ "lm.none": "Kein Ordner gewählt",
+ "lm.songs": "Lieder",
+ "lm.indexing": "Lese die Titel der Lieder…",
+ "lm.permission": "Der Browser fragt einmal pro Start: tippe auf „Musikordner erlauben“.",
+ "lm.session": "Nur für diese Sitzung gewählte Lieder: beim nächsten Start sind sie weg.",
+ "lm.no_picker": "Dieser Browser kann sich keinen Ordner merken (Handys): wähle stattdessen Lieder.",
+ "lm.choose_folder": "Musikordner wählen",
+ "lm.allow": "Musikordner erlauben",
+ "lm.choose_files": "Lieder wählen",
+ "lm.rescan": "Ordner erneut durchsehen",
+ "lm.forget": "Ordner vergessen",
+ "lm.forget.sure": "Den Musikordner vergessen? Die Lieder selbst bleiben unberührt.",
+ "lm.forget.done": "Vergessen.",
+ "lm.privacy": "Emkay liest den Anfang jeder Datei für Titel, Künstler und Album, wie OVOS auf einem Gerät. Die Liste bleibt in diesem Browser."
+}

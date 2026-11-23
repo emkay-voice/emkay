@@ -151,6 +151,14 @@ PROBES = [
         r"queue end reached",
         r"media ok",
     ]),
+    # your own music (#108): a song chosen for this session, found by OCP
+    # through Emkay's local media provider and played from the page's file
+    ("media_browser.mjs", {"LOCAL_SONG": "Kaffesangen.wav", "SAY": "play kaffesangen"}, [], [
+        r"local songs: 1",
+        r'local media: \{"folder": "songs", "songs": 1, "state": "ready"',
+        r'playing: \{"uri":"file:///emkay-local/songs/Kaffesangen\.wav"',
+        r"media ok",
+    ]),
     ("installable_browser.mjs", {}, [], [
         r"manifest errors: none",
         r"installability errors: none",                     # "Install as app" can be offered

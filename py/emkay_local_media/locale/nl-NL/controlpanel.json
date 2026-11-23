@@ -1,0 +1,20 @@
+{
+ "lm.title": "Lokale media",
+ "lm.intro": "Speel je eigen muziek uit een map op dit apparaat: \"speel <nummer>\", \"speel iets van <artiest>\". De bestanden worden afgespeeld waar ze staan; er wordt niets gekopieerd en niets verlaat het apparaat.",
+ "lm.now": "Nu",
+ "lm.folder": "Map",
+ "lm.none": "Geen map gekozen",
+ "lm.songs": "Nummers",
+ "lm.indexing": "Titels lezen…",
+ "lm.permission": "De browser vraagt het één keer per start: tik op ‘Muziekmap toestaan’.",
+ "lm.session": "Alleen voor deze sessie gekozen nummers: bij de volgende start zijn ze weg.",
+ "lm.no_picker": "Deze browser kan geen map onthouden (telefoons): kies nummers.",
+ "lm.choose_folder": "Kies een muziekmap",
+ "lm.allow": "Muziekmap toestaan",
+ "lm.choose_files": "Kies nummers",
+ "lm.rescan": "De map opnieuw doorzoeken",
+ "lm.forget": "Map vergeten",
+ "lm.forget.sure": "De muziekmap vergeten? De nummers zelf blijven onaangeroerd.",
+ "lm.forget.done": "Vergeten.",
+ "lm.privacy": "Emkay leest het begin van elk bestand voor titel, artiest en album, zoals OVOS op een apparaat. De lijst blijft in deze browser."
+}

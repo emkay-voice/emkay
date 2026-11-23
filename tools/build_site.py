@@ -139,7 +139,31 @@ def build_bundle(wheelhouse: Path, plan: dict) -> bytes:
                     out.writestr(item.filename, whl.read(item))
         add_tree(out, REPO / "py/emkay_mobile", "emkay_mobile")
         add_shim_distributions(out, plan["shimmed"])
+        for name, top, eps in OWN_DISTRIBUTIONS:
+            add_tree(out, REPO / "py" / top, top)
+            add_own_distribution(out, name, top, eps)
     return buf.getvalue()
+
+
+#: Emkay's own packages that OVOS finds by their distribution: (name, top
+#: level package in py/, entry points). emkay-local-media is a media
+#: provider (OCP) and a control panel page (webui.pages.packages in boot.py)
+OWN_DISTRIBUTIONS = [
+    ("emkay-local-media", "emkay_local_media",
+     "[opm.media.provider]\nemkay-local = emkay_local_media:EmkayLocalMedia\n"),
+]
+
+
+def add_own_distribution(zf, name, top, entry_points):
+    """A .dist-info for one of Emkay's own packages, at the version of the site."""
+    version = (REPO / "VERSION").read_text().strip()
+    info = f"{name.replace('-', '_')}-{version}.dist-info"
+    zf.writestr(f"{info}/METADATA", f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
+                f"Summary: part of Emkay (py/{top})\n")
+    zf.writestr(f"{info}/top_level.txt", top + "\n")
+    zf.writestr(f"{info}/entry_points.txt", entry_points)
+    zf.writestr(f"{info}/INSTALLER", "emkay\n")
+    zf.writestr(f"{info}/RECORD", "")
 
 
 def add_shim_distributions(zf, shimmed):

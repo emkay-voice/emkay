@@ -11,6 +11,7 @@
 import { t, apply, setLang, onLangChange, matchLang } from "./i18n.js";
 import { onRequest as deviceRequest, startDevice } from "./device.js";
 import { createMediaPlayer } from "./media.js";
+import { createLocalMedia } from "./localmedia.js";
 import { createBrain, chosenBrain } from "./brains/brain.js";
 import { haLinkWanted, startHaDevice } from "./ha-device.js";
 import { chooseBrain, brainHint } from "./brains/choose.js";
@@ -402,6 +403,7 @@ let housePanel = null;
     sttModule = info.stt_module;
     privacy.boot(info);
     privacy.room(info.room_listeners || []);
+    if (brain.kind === "local") localMedia.start().catch((e) => console.warn("[emkay] local media", e));
     ovosReady();
     showVisage();
     if (brain.kind === "local") bootStatus("boot.skills", 1, { n: info.skills.length });
@@ -1155,7 +1157,14 @@ function onPhal(msg) {
 // ------------------------------------------------------------------ media
 /** Music, radio and podcasts: ovos-audio's AudioService plays them here,
  * through ovos-audio-plugin-browser (media.js has the details). */
-const media = createMediaPlayer((type, data) => brain.emit(type, data));
+// your own music from a folder on the device (#108): it owns the files; the
+// local OVOS searches them (py/emkay_local_media), the player plays them
+const localMedia = createLocalMedia({
+  call: (cmd, args, transfer) => call(cmd, args, transfer),
+  askTap: (on) => musicTip(on),
+});
+const media = createMediaPlayer((type, data) => brain.emit(type, data),
+  { resolve: (uri) => localMedia.file(uri) });
 
 /**
  * The phone's position for OVOS' location (the plugin turns it into city,
@@ -1192,6 +1201,7 @@ function toVisage(type, data = {}) {
  * that came with it, e.g. a file:// track for media.js). */
 function onBus(msg, data) {
   if (media.onBus(msg, data)) return;
+  if (localMedia.onBus(msg)) return;
   if (msg.type === "ovos.midi.pcm") return midiOut.play(msg.data);
   // ovos-skill-karaoke: while Emkay sings, the words go under the face (in
   // karaoke mode the skill's own screen shows them)
@@ -1460,6 +1470,16 @@ async function installApp() {
   installPrompt.prompt();
   await installPrompt.userChoice.catch(() => {});
   installPrompt = null;
+}
+/** The browser asks again for the kept music folder: a tap on this note. */
+function musicTip(on) {
+  const tip = $("music-tip");
+  if (!tip) return;
+  tip.hidden = !on;
+  if (!on) return;
+  apply(tip);
+  $("music-tip-yes").onclick = () => { tip.hidden = true; localMedia.allow(); };
+  $("music-tip-no").onclick = () => { tip.hidden = true; };
 }
 function offerInstall() {
   let seen = false;
@@ -1835,4 +1855,4 @@ $("activity-close").onclick = () => {
   $("network").hidden = false;
 };
 
-window.emkay = { call, mic, speaker, media, wake, room, activity, privacy, releaseMic, stt: () => sttModule };
+window.emkay = { call, mic, speaker, media, localMedia, wake, room, activity, privacy, releaseMic, stt: () => sttModule };

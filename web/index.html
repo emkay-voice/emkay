@@ -99,6 +99,14 @@
     <button id="install-tip-yes" data-i18n="menu.install"></button>
     <button id="install-tip-no" class="link" data-i18n="close"></button>
   </div>
+  <!-- your own music: the browser asks again for the kept folder (web/localmedia.js) -->
+  <div id="music-tip" class="install-tip" role="dialog" aria-labelledby="music-tip-title" hidden>
+    <img src="menu/music.svg" alt="">
+    <span><b id="music-tip-title" data-i18n="music.allow"></b>
+      <small data-i18n="music.allow.hint"></small></span>
+    <button id="music-tip-yes" data-i18n="music.allow.yes"></button>
+    <button id="music-tip-no" class="link" data-i18n="close"></button>
+  </div>
 
   <!-- about: who made it, and what it stands on -->
   <div id="about" class="menu" hidden>

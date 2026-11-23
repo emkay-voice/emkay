@@ -143,22 +143,31 @@ RECOMMENDS_PATH = os.path.expanduser("~/.local/share/emkay-mobile/recommends")
 #: the Emkay store (emkay-voice/emkay-store): the skills and plugins tried in
 #: Emkay, for the control panel's "Find more" (webui.stores)
 STORE = {"name": "Emkay", "url": "https://store.emkay.ai/data/skills.json"}
-DISTRIBUTION = {"webui": {
-    "branding": {"name": "Emkay", "logo": LOGO_PATH, "colors_dark": EMKAY_COLORS},
-    "theme": "dark",
-    "setup": {"steps": ["token", "language", "voice", "speak", "tryit"]},
-    "stores": [STORE],
-    "recommends": RECOMMENDS_PATH,
-    # no ovos-media in a browser: OCP plays through ovos-audio (the page)
-    "absent_services": ["media"],
-    # the device controls come from the browser PHAL plugin ("provides" in
-    # its controlpanel.json); none of the companions (Wi-Fi, ggwave) can be
-    # installed in a browser, so none is offered
-    "companions": [],
-    # ovos-media-provider-local's own page (its folders, ~/Music) has no
-    # use here: Emkay's Local media page chooses the folder (#108)
-    "pages": {"disabled": ["media-local"]},
-}}
+DISTRIBUTION = {
+    # ovos-media-provider-local looks in ~/Music, which in a browser is empty:
+    # Emkay's own (emkay_local_media) plays the folder the page was given
+    "media_providers": {"local": {"enabled": False}},
+    "webui": {
+        "branding": {"name": "Emkay", "logo": LOGO_PATH, "colors_dark": EMKAY_COLORS},
+        "theme": "dark",
+        "setup": {"steps": ["token", "language", "voice", "speak", "tryit"]},
+        "stores": [STORE],
+        "recommends": RECOMMENDS_PATH,
+        # no ovos-media in a browser: OCP plays through ovos-audio (the page)
+        "absent_services": ["media"],
+        # the device controls come from the browser PHAL plugin ("provides" in
+        # its controlpanel.json); none of the companions (Wi-Fi, ggwave) can be
+        # installed in a browser, so none is offered
+        "companions": [],
+        "pages": {
+            # Emkay's own pages: local media (emkay_local_media)
+            "packages": ["emkay-local-media"],
+            # ovos-media-provider-local's own page (its folders, ~/Music) has
+            # no use here: Emkay's Local media page chooses the folder (#108)
+            "disabled": ["media-local"],
+        },
+    },
+}
 
 #: The user layer of mycroft.conf, as on a device (~/.config/mycroft).
 CONF_PATH = os.path.expanduser("~/.config/mycroft/mycroft.conf")
