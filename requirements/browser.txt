@@ -153,7 +153,7 @@ ovos-control-panel
 ovos-stt-plugin-browser
 ovos-tts-plugin-piper-browser>=0.1.0a3
 ovos-phal-plugin-browser
-ovos-audio-plugin-browser
+ovos-audio-plugin-browser>=0.1.0a3   # file:// tracks (your own music, #108)
 ovos-stt-plugin-whisper-browser
 
 # browser glue
