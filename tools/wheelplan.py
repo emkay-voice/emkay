@@ -23,7 +23,21 @@ DROPPED = {"hf-xet",               # optional huggingface_hub transfer backend
            # Loading scipy and scikit-learn at every start took 8.5 s and
            # ~650 MB of the tab's memory (Node: 9.3 -> 0.8 s, 938 -> 286 MB
            # RSS), which a phone may not have. The rest is only theirs.
-           "scikit-learn", "scipy", "skops", "threadpoolctl", "narwhals", "prettytable"}
+           "scikit-learn", "scipy", "skops", "threadpoolctl", "narwhals", "prettytable",
+           # never imported in the browser, yet unpacked into its memory at
+           # every start (tools/probes/memory_packages.py, ~12 MB of files):
+           # rich and its own (pygments, markdown-it, mdurl) only for command
+           # lines: ovos-config's and ovos-utils' (log_parser), wakeforge's
+           # demo, httpx's; rich-click for the first two
+           "rich", "rich-click", "pygments", "markdown-it-py", "mdurl",
+           # Python 2 compatibility for geocoder, whose `from builtins
+           # import str` is Python 3's own builtins
+           "future",
+           # a build tool; pytz reads its zoneinfo with importlib first
+           "setuptools",
+           # Pyodide packages in the wheelhouse that nothing here requires
+           # or imports (a shimmed onnxruntime's protobuf; cffi)
+           "protobuf", "cffi", "pycparser"}
 # shipped as-is although tagged for a platform (pure Python inside)
 # (tornado: its C speedups are optional; ovos-gui only imports it)
 FORCE_PURE = {"watchdog", "tornado"}
