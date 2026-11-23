@@ -8,8 +8,14 @@
 //            whether there is a camera, pictures
 //   requests reload (reboot / restart services), off (shutdown),
 //            forget_welcome (factory reset), camera_check / _open / _close,
-//            picture
+//            picture, sensors (which of the sensors that ask to have on)
 // Each API is used only where the browser has it; the rest stays silent.
+//
+// The sensors that ask the user (position, someone at the screen, the
+// microphone's level, motion values) are off until turned on in the plugin's
+// settings: off, they are never touched, so the browser never asks. Turned
+// on where the browser has not been allowed yet, they wait for a tap: a small
+// "Tap to allow" on the screen, since a browser asks only after a tap.
 
 import { t } from "./i18n.js";
 
@@ -171,6 +177,181 @@ function watchLight() {
   } catch { /* not allowed here */ }
 }
 
+// ------------------------------------------------ sensors that ask first
+/** Position, followed over time (Geolocation). */
+function startPosition() {
+  const id = navigator.geolocation.watchPosition((p) => {
+    const { latitude, longitude, accuracy } = p.coords;
+    sensor("position", "location", `${latitude.toFixed(4)},${longitude.toFixed(4)}`,
+      { latitude, longitude, gps_accuracy: Math.round(accuracy), icon: "mdi:crosshairs-gps" });
+  }, (e) => { if (e.code === 1) { stopSensor("position"); asked("position", "denied"); } },
+  { enableHighAccuracy: false, maximumAge: 60e3 });
+  return () => navigator.geolocation.clearWatch(id);
+}
+
+/** Someone at the screen, and whether it is locked (Idle Detection, Chrome). */
+async function startPresence(tapped) {
+  if (tapped && (await IdleDetector.requestPermission()) !== "granted")
+    throw Object.assign(new Error("not allowed"), { name: "NotAllowedError" });
+  const detector = new IdleDetector();
+  const stop = new AbortController();
+  const report = () => {
+    sensor("presence", "user_active", detector.userState === "active",
+      { device_class: "occupancy", icon: "mdi:account" }, true);
+    sensor("presence", "screen_locked", detector.screenState === "locked",
+      { device_class: "lock", icon: "mdi:cellphone-lock" }, true);
+  };
+  detector.addEventListener("change", report);
+  await detector.start({ threshold: 60e3, signal: stop.signal });
+  report();
+  return () => stop.abort();
+}
+
+/** How loud the room is: the microphone's level in dBFS, every 5 s. */
+async function startMicLevel() {
+  const mic = await navigator.mediaDevices.getUserMedia(
+    { audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+  const ctx = new AudioContext();
+  const analyser = Object.assign(ctx.createAnalyser(), { fftSize: 2048 });
+  ctx.createMediaStreamSource(mic).connect(analyser);
+  // a context made without a tap may start suspended: the next tap resumes it
+  if (ctx.state === "suspended") addEventListener("pointerdown", () => ctx.resume(), { once: true });
+  const buf = new Float32Array(analyser.fftSize);
+  let sum = 0, n = 0;
+  const sample = setInterval(() => {
+    analyser.getFloatTimeDomainData(buf);
+    for (const x of buf) sum += x * x;
+    n += buf.length;
+  }, 250);
+  const report = setInterval(() => {
+    if (!n) return;
+    const db = Math.max(-100, Math.round(10 * Math.log10(sum / n + 1e-12)));
+    sum = 0; n = 0;
+    sensor("microphone", "level", db, { unit_of_measurement: "dB", device_class: "sound_pressure", icon: "mdi:microphone" });
+  }, 5000);
+  return () => {
+    clearInterval(sample); clearInterval(report);
+    mic.getTracks().forEach((track) => track.stop());
+    ctx.close().catch(() => {});
+  };
+}
+
+/** Acceleration, rotation and the magnetic field (Generic Sensors, or
+ * devicemotion); on iOS the permission motion and orientation need. */
+async function startMotionValues(tapped) {
+  if (typeof DeviceMotionEvent?.requestPermission === "function") {
+    if (!tapped || (await DeviceMotionEvent.requestPermission()) !== "granted")
+      throw Object.assign(new Error("not allowed"), { name: "NotAllowedError" });
+  }
+  const stops = [];
+  const generic = (Kind, device, unit, scale, icon) => {
+    if (!(Kind in self)) return false;
+    try {
+      const s = new self[Kind]({ frequency: 1 });
+      s.addEventListener("reading", () => sensor(device, "magnitude",
+        Math.round(Math.hypot(s.x, s.y, s.z) * scale * 10) / 10, { unit_of_measurement: unit, icon }));
+      s.start();
+      stops.push(() => s.stop());
+      return true;
+    } catch { return false; }
+  };
+  const acc = generic("Accelerometer", "acceleration", "m/s²", 1, "mdi:axis-arrow");
+  const gyro = generic("Gyroscope", "rotation", "°/s", 180 / Math.PI, "mdi:rotate-3d-variant");
+  generic("Magnetometer", "magnetic_field", "µT", 1, "mdi:magnet");
+  if (!acc || !gyro) {           // Safari, Firefox: the same from devicemotion
+    let last = 0;
+    const onMotion = (e) => {
+      if (performance.now() - last < 1000) return;
+      last = performance.now();
+      const a = e.accelerationIncludingGravity, r = e.rotationRate;
+      if (!acc && a?.x != null) sensor("acceleration", "magnitude",
+        Math.round(Math.hypot(a.x, a.y, a.z) * 10) / 10, { unit_of_measurement: "m/s²", icon: "mdi:axis-arrow" });
+      if (!gyro && r?.alpha != null) sensor("rotation", "magnitude",
+        Math.round(Math.hypot(r.alpha, r.beta, r.gamma) * 10) / 10, { unit_of_measurement: "°/s", icon: "mdi:rotate-3d-variant" });
+    };
+    addEventListener("devicemotion", onMotion);
+    stops.push(() => removeEventListener("devicemotion", onMotion));
+  }
+  return () => stops.forEach((s) => s());
+}
+
+const ASKING = {
+  position: { perm: "geolocation", has: () => "geolocation" in navigator, start: startPosition },
+  presence: { perm: "idle-detection", has: () => "IdleDetector" in self, start: startPresence },
+  mic_level: { perm: "microphone", has: () => !!navigator.mediaDevices?.getUserMedia, start: startMicLevel },
+  motion: { perm: "accelerometer", start: startMotionValues,
+    has: () => "Accelerometer" in self || "DeviceMotionEvent" in self },
+};
+const running = new Map();      // sensor -> its stop()
+const waiting = new Set();      // turned on, waiting for a tap to ask
+let wanted = null;              // the plugin's last "sensors" request, until startDevice
+
+const asked = (name, state) => event("sensor_state", { name, state });
+
+async function permission(name) {
+  if (name === "motion" && typeof DeviceMotionEvent?.requestPermission === "function") return "prompt";
+  try { return (await navigator.permissions.query({ name: ASKING[name].perm })).state; } catch { return "prompt"; }
+}
+
+function stopSensor(name) {
+  running.get(name)?.();
+  running.delete(name);
+}
+
+async function runSensor(name, tapped = false) {
+  try {
+    running.set(name, await ASKING[name].start(tapped));
+    asked(name, "on");
+  } catch (e) {
+    asked(name, e?.name === "NotAllowedError" ? "denied" : "absent");
+  }
+}
+
+/** The plugin's "sensors" request: {sensor: on?}. */
+async function applySensors(on) {
+  for (const name of Object.keys(ASKING)) {
+    if (!on[name]) {
+      stopSensor(name);
+      waiting.delete(name);
+      asked(name, "off");
+      continue;
+    }
+    if (running.has(name)) continue;
+    if (!ASKING[name].has()) { asked(name, "absent"); continue; }
+    const p = await permission(name);
+    if (p === "granted") runSensor(name);
+    else if (p === "denied") asked(name, "denied");
+    else { waiting.add(name); asked(name, "waiting"); }
+  }
+  showTapTip();
+}
+
+/** "Tap to allow": the browser asks for what waits, after this tap. */
+function showTapTip() {
+  let tip = document.getElementById("sensor-tip");
+  if (!waiting.size) { if (tip) tip.hidden = true; return; }
+  if (!tip) {
+    tip = Object.assign(document.createElement("div"), { id: "sensor-tip", className: "install-tip" });
+    tip.setAttribute("role", "dialog");
+    tip.innerHTML = `<img src="menu/sensors.svg" alt=""><span><b></b><small></small></span>
+      <button class="allow"></button><button class="link close"></button>`;
+    document.body.append(tip);
+    tip.querySelector(".close").onclick = () => { tip.hidden = true; };
+    tip.querySelector(".allow").onclick = () => {
+      tip.hidden = true;
+      const names = [...waiting];
+      waiting.clear();
+      names.forEach((name) => runSensor(name, true));   // all in this tap: each may ask
+    };
+  }
+  tip.querySelector("b").textContent = t("sensors.allow");
+  tip.querySelector("small").textContent = t("sensors.allow.hint",
+    { names: [...waiting].map((n) => t(`sensors.name.${n}`)).join(", ") });
+  tip.querySelector(".allow").textContent = t("sensors.allow.yes");
+  tip.querySelector(".close").textContent = t("close");
+  tip.hidden = false;
+}
+
 // ---------------------------------------------------------------- camera
 let stream = null;
 
@@ -238,6 +419,10 @@ export function onRequest(msg) {
     case "camera_open": cameraOpen().catch(() => {}); return true;
     case "camera_close": cameraClose(); return true;
     case "picture": picture(msg.id); return true;
+    case "sensors":
+      wanted = msg.on || {};
+      if (call) applySensors(wanted);
+      return true;
   }
   return false;
 }
@@ -255,4 +440,5 @@ export function startDevice(callWorker) {
   watchLight();
   watchStorage();
   readDevice();
+  if (wanted) applySensors(wanted);    // asked for before the page was ready
 }

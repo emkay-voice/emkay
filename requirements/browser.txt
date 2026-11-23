@@ -152,7 +152,7 @@ ovos-control-panel
 # recognition on the phone (offline)
 ovos-stt-plugin-browser
 ovos-tts-plugin-piper-browser>=0.1.0a3
-ovos-phal-plugin-browser
+ovos-phal-plugin-browser>=0.1.0a7   # the sensors that ask, off until turned on
 ovos-audio-plugin-browser>=0.1.0a3   # file:// tracks (your own music, #108)
 ovos-stt-plugin-whisper-browser
 
