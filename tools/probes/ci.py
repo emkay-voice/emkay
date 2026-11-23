@@ -37,6 +37,10 @@ PROBES = [
         r"\| Start ",                            # the first start offers setup
         r"wake step shown: false",              # browser-honest wizard
         r"setup url: .*/panel/setup",
+        # Emkay as a distribution of the panel (boot.py DISTRIBUTION): its
+        # own recommendations (Whisper and Piper in the browser) and store
+        r"setup text:[\s\S]*ovos-stt-plugin-whisper-browser[\s\S]*ovos-tts-plugin-piper-browser",
+        r'/api/stores: \{"stores":\[\{"name":"Emkay"',   # the panel shows a store by its name
     ]),
     ("lang_browser.mjs", {"PHONE_LANG": "da-DK"}, [], [
         r"OVOS lang: da-DK",                    # the phone's language

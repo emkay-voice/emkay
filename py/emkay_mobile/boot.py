@@ -137,6 +137,12 @@ EMKAY_LOGO = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><re
               'cx="346" cy="210" r="56" stroke="#555"/><path d="M290 210a56 56 0 0 1 112 0" stroke="#fff"/>'
               '<path d="M186 352q70 50 140 0" stroke="#fff"/></g></svg>')
 LOGO_PATH = os.path.expanduser("~/.local/share/emkay-mobile/logo.svg")
+#: Emkay's recommendations for the control panel (webui.recommends): OVOS'
+#: own per language, made for a browser at every start (_recommendations)
+RECOMMENDS_PATH = os.path.expanduser("~/.local/share/emkay-mobile/recommends")
+#: the Emkay store (emkay-voice/emkay-store): the skills and plugins tried in
+#: Emkay, for the control panel's "Find more" (webui.stores)
+STORE = {"name": "Emkay", "url": "https://store.emkay.ai/data/skills.json"}
 DISTRIBUTION = {
     # ovos-media-provider-local looks in ~/Music, which in a browser is empty:
     # Emkay's own (emkay_local_media) plays the folder the page was given
@@ -145,8 +151,21 @@ DISTRIBUTION = {
         "branding": {"name": "Emkay", "logo": LOGO_PATH, "colors_dark": EMKAY_COLORS},
         "theme": "dark",
         "setup": {"steps": ["token", "language", "voice", "speak", "tryit"]},
-        # Emkay's own pages: local media (emkay_local_media)
-        "pages": {"packages": ["emkay-local-media"]},
+        "stores": [STORE],
+        "recommends": RECOMMENDS_PATH,
+        # no ovos-media in a browser: OCP plays through ovos-audio (the page)
+        "absent_services": ["media"],
+        # the device controls come from the browser PHAL plugin ("provides" in
+        # its controlpanel.json); none of the companions (Wi-Fi, ggwave) can be
+        # installed in a browser, so none is offered
+        "companions": [],
+        "pages": {
+            # Emkay's own pages: local media (emkay_local_media)
+            "packages": ["emkay-local-media"],
+            # ovos-media-provider-local's own page (its folders, ~/Music) has
+            # no use here: Emkay's Local media page chooses the folder (#108)
+            "disabled": ["media-local"],
+        },
     },
 }
 
@@ -741,8 +760,58 @@ def _browser_installer():
     SkillsStore.UV = None   # the command line it builds is then plain pip's
 
 
+def _recommendations(root: str = RECOMMENDS_PATH) -> None:
+    """Emkay's recommendations, from OVOS' own (ovos-config's registry), for
+    every language OVOS has: its base settings (units, formats) without the
+    wake words a browser has no listener for; on the device, Whisper and
+    Piper in the browser where they have the language; the servers as the
+    online choice. Written at every start, so they follow OVOS and the
+    plugins, and kept nowhere else."""
+    import shutil
+    from pathlib import Path
+    try:
+        from ovos_webui.recommends import registry_root
+        from ovos_stt_plugin_whisper_browser import LANGUAGES as WHISPER
+        from ovos_tts_plugin_piper_browser import voice_for
+    except ImportError as e:
+        print(f"[emkay] no recommendations: {e!r}")
+        return
+    ovos = registry_root()
+    if ovos is None:
+        return
+    out = Path(root)
+    shutil.rmtree(out, ignore_errors=True)
+
+    def write(profile, lang, data):
+        (out / profile).mkdir(parents=True, exist_ok=True)
+        (out / profile / f"{lang}.conf").write_text(json.dumps(data, indent=1), encoding="utf-8")
+
+    for f in sorted((ovos / "base").glob("*.conf")):
+        lang = f.stem
+        try:
+            base = json.loads(f.read_text(encoding="utf-8"))
+        except ValueError:
+            continue
+        base.pop("hotwords", None)                  # no wake word listener here
+        listener = {k: v for k, v in (base.pop("listener", None) or {}).items()
+                    if not k.endswith("_word")}
+        if listener:
+            base["listener"] = listener
+        write("base", lang, base)
+        for profile in ("online_stt", "online_male", "online_female"):
+            src = ovos / profile / f"{lang}.conf"
+            if src.exists():
+                write(profile, lang, json.loads(src.read_text(encoding="utf-8")))
+        if lang.split("-")[0].lower() in WHISPER:
+            write("offline_stt", lang, {"stt": {"module": LOCAL_STT}})
+        if voice_for(lang):
+            write("offline_male", lang, {"tts": {"module": LOCAL_TTS}})
+
+
 def _distribution_layer() -> None:
-    """Write Emkay's system layer (DISTRIBUTION) and the logo it names."""
+    """Write Emkay's system layer (DISTRIBUTION), the logo it names and its
+    recommendations."""
+    _recommendations()
     from ovos_config.locations import SYSTEM_CONFIG
     try:
         os.makedirs(os.path.dirname(LOGO_PATH), exist_ok=True)

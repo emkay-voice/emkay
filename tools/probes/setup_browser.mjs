@@ -87,7 +87,7 @@ try {
     log(`  ${method} ${path} -> ${r?.status}`);
     try { return JSON.parse(r.body); } catch { return { raw: String(r?.body ?? r).slice(0, 300) }; }
   };
-  for (const p of ["/api/status", "/api/config/quick", "/api/plugins/recommended", "/api/events"])
+  for (const p of ["/api/status", "/api/config/quick", "/api/plugins/recommended", "/api/events", "/api/stores"])
     log(`${p}: ${JSON.stringify(await api("GET", p)).slice(0, 900)}`);
   await until(`${doc}?.querySelector("#recommended") && !/Loading/.test(${doc}.querySelector("#recommended").textContent)`, 60, "setup page");
   await sleep(3000);

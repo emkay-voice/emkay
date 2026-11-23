@@ -68,23 +68,6 @@ def _bus_calls_inline():
     deadline.run_with_deadline = run_with_deadline
 
 
-def _browser_capabilities():
-    """Tell the panel which device controls the browser PHAL plugin gives.
-
-    The panel enables a control (e.g. the volume slider) when a plugin it
-    knows provides it is installed (ovos_webui.phal.CAPABILITIES). The
-    browser plugin (ovos-phal-plugin-browser) answers
-    the volume messages the same way ovos-PHAL-plugin-alsa does and the
-    power, factory reset and language ones as ovos-PHAL-plugin-system
-    (ovos-phal-plugin-browser), so it is added to the providers of those three.
-    """
-    from ovos_webui import phal as capabilities
-    for key in ("volume", "power", "system"):
-        providers = capabilities.CAPABILITIES[key]["plugins"]
-        if "ovos-phal-plugin-browser" not in providers:
-            providers.append("ovos-phal-plugin-browser")
-
-
 def _one_installer():
     """Fit the panel's install jobs to the one installer that runs here.
 
@@ -118,46 +101,13 @@ def _one_installer():
     installer.threading = later
 
 
-# Plugins that run in a browser and so may be recommended although they are
-# not shipped with the site. Empty today; Emkay's own in-browser STT/TTS
-# (Whisper, Piper) belong here once they exist.
-BROWSER_PLUGINS: set = set()
-
-
-def _browser_recommendations():
-    """Recommend only what can work here.
-
-    OVOS' language profiles recommend the plugins a Raspberry Pi or a PC
-    would use: Wakeforge, Vosk, onnx-asr, phoonnx. Those need native code
-    (onnxruntime, vosk) that pip.py cannot install in a browser, and there
-    is no wake word listener here at all. So the first-start wizard and the
-    Plugins page keep only recommendations that are already installed (the
-    public-server STT/TTS that ship with the site) or listed in
-    BROWSER_PLUGINS, and no hotwords. The profiles themselves are untouched.
-    """
-    from ovos_webui import recommends
-
-    stock = recommends.recommended_plugins
-
-    def recommended_plugins(lang, data=None):
-        from ovos_webui.pypi import installed_versions
-        have = installed_versions()
-        return [p for p in stock(lang, data)
-                if not p["section"].startswith("hotwords")
-                and (p["module"].lower() in have or p["module"] in BROWSER_PLUGINS)]
-
-    recommends.recommended_plugins = recommended_plugins
-
-
 def app():
     """The panel's ASGI app, built once on OVOS' bus."""
     global _app
     if _app is None:
         _run_inline()
         _bus_calls_inline()
-        _browser_capabilities()
         _one_installer()
-        _browser_recommendations()
         from ovos_webui.service import create_app
         from . import boot
         _app = create_app(bus=boot.bus(), host=HOST, connect_bus=False)
