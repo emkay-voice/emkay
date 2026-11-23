@@ -1,0 +1,20 @@
+{
+ "lm.title": "Medios locales",
+ "lm.intro": "Reproduce tu propia música desde una carpeta de este dispositivo: «pon <canción>», «pon algo de <artista>». Los archivos se reproducen donde están; no se copia nada y nada sale del dispositivo.",
+ "lm.now": "Ahora",
+ "lm.folder": "Carpeta",
+ "lm.none": "Ninguna carpeta elegida",
+ "lm.songs": "Canciones",
+ "lm.indexing": "Leyendo los títulos…",
+ "lm.permission": "El navegador pregunta una vez por inicio: toca «Permitir la carpeta de música».",
+ "lm.session": "Canciones elegidas solo para esta sesión: desaparecen en el próximo inicio.",
+ "lm.no_picker": "Este navegador no puede recordar una carpeta (móviles): elige canciones.",
+ "lm.choose_folder": "Elegir una carpeta de música",
+ "lm.allow": "Permitir la carpeta de música",
+ "lm.choose_files": "Elegir canciones",
+ "lm.rescan": "Revisar la carpeta de nuevo",
+ "lm.forget": "Olvidar la carpeta",
+ "lm.forget.sure": "¿Olvidar la carpeta de música? Las canciones no se tocan.",
+ "lm.forget.done": "Olvidada.",
+ "lm.privacy": "Emkay lee el principio de cada archivo para su título, artista y álbum, como OVOS en un dispositivo. La lista se queda en este navegador."
+}

@@ -1,0 +1,20 @@
+{
+ "lm.title": "Tokiko multimedia",
+ "lm.intro": "Entzun zure musika gailu honetako karpeta batetik: «jarri <abestia>», «jarri <artista>ren zerbait». Fitxategiak dauden lekuan jotzen dira; ez da ezer kopiatzen eta ezer ez da gailutik ateratzen.",
+ "lm.now": "Orain",
+ "lm.folder": "Karpeta",
+ "lm.none": "Ez da karpetarik aukeratu",
+ "lm.songs": "Abestiak",
+ "lm.indexing": "Izenburuak irakurtzen…",
+ "lm.permission": "Nabigatzaileak abiarazte bakoitzean behin galdetzen du: sakatu «Baimendu musika-karpeta».",
+ "lm.session": "Saio honetarako bakarrik aukeratutako abestiak: hurrengo abiaraztean desagertzen dira.",
+ "lm.no_picker": "Nabigatzaile honek ezin du karpetarik gogoratu (mugikorrak): aukeratu abestiak.",
+ "lm.choose_folder": "Aukeratu musika-karpeta bat",
+ "lm.allow": "Baimendu musika-karpeta",
+ "lm.choose_files": "Aukeratu abestiak",
+ "lm.rescan": "Berrikusi karpeta",
+ "lm.forget": "Ahaztu karpeta",
+ "lm.forget.sure": "Musika-karpeta ahaztu? Abestiak ez dira ukitzen.",
+ "lm.forget.done": "Ahaztuta.",
+ "lm.privacy": "Emkay-k fitxategi bakoitzaren hasiera irakurtzen du izenburu, artista eta albumerako, OVOS-ek gailu batean bezala. Zerrenda nabigatzaile honetan geratzen da."
+}

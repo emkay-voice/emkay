@@ -21,7 +21,7 @@ import time
 # Emkay's own modules first: importing boot runs browser.install(), which
 # puts the stand-ins for native packages (shims/: pexpect, psutil, ...) on
 # the path; ovos-utils' security module imports pexpect
-from . import boot, browser, gui, listener, netlog, panel, privacy, speech
+from . import boot, browser, gui, listener, local_media, netlog, panel, privacy, speech
 
 import ovos_phal_plugin_browser as phal   # the browser tab as the device
 
@@ -81,6 +81,8 @@ def start(js_post, user_config=None) -> str:
     listener.start(bus, lambda names: _post("bus", json.dumps(
         {"type": "emkay.room", "data": {"names": names}})))
     info["room_listeners"] = []
+    # your own music from a folder on the device (local_media.py, web/localmedia.js)
+    local_media.start(bus, lambda payload: _post("bus", json.dumps(payload)))
     _start_audio_service(bus)
     boot.report("boot.services", 0.6)
     # the phone's "hardware", also kiosk and local only (#23): the skills
@@ -419,6 +421,32 @@ def wakeword(name: str):
 def record_begin():
     """The page started recording: tell OVOS, so the face starts listening."""
     boot.emit("recognizer_loop:record_begin")
+
+
+def _bytes(b):
+    return b.to_bytes() if hasattr(b, "to_bytes") else bytes(b)
+
+
+def local_media_listing(folder: str, entries: str, keep=True) -> str:
+    """The page's music folder (JSON list of its audio files): what to read
+    of the new and changed ones, for their tags (local_media.py)."""
+    return local_media.listing(str(folder), str(entries), bool(keep))
+
+
+def local_media_tags(path: str, head, tail):
+    local_media.tags(str(path), _bytes(head), _bytes(tail))
+
+
+def local_media_done(keep=True):
+    local_media.done(bool(keep))
+
+
+def local_media_page(state: str):
+    local_media.page_state(str(state))
+
+
+def local_media_forget():
+    local_media.forget()
 
 
 def room_audio(pcm16):

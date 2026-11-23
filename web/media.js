@@ -27,9 +27,11 @@ const POSITION_EVERY = 5000;   // ms between position reports while playing
 
 /**
  * @param {(type: string, data: object) => void} send - put a message on the bus
+ * @param {{resolve?: (uri: string) => Promise<Blob|null>}} [opts] - resolve: the
+ *   file for an emkay-local: track (your own music, web/localmedia.js)
  * @returns {{onBus(msg): boolean, setLevel(level): void}}
  */
-export function createMediaPlayer(send) {
+export function createMediaPlayer(send, { resolve } = {}) {
   const audio = new Audio();
   audio.preload = "auto";
   let level = { volume: 0.75, muted: false };
@@ -76,10 +78,23 @@ export function createMediaPlayer(send) {
   function play({ uri: next, position_ms = 0 }, bytes) {
     uri = next;
     dropBlob();
+    if (next?.startsWith("emkay-local:") && resolve) {
+      // your own music: the file from the folder, played where it is
+      resolve(next).then((file) => {
+        if (uri !== next) return;           // a newer play or a stop came first
+        if (!file) { report("error", { error: "the song's folder is not open: allow the music folder" }); uri = null; return; }
+        blobUrl = URL.createObjectURL(file);
+        begin(next, position_ms);
+      }).catch((e) => { if (uri === next) { report("error", { error: e.message || e.name }); uri = null; } });
+      return;
+    }
     if (bytes) {
       const ext = next.split("?")[0].split(".").pop().toLowerCase();
       blobUrl = URL.createObjectURL(new Blob([bytes], { type: MIME[ext] || "" }));
     }
+    begin(next, position_ms);
+  }
+  function begin(next, position_ms) {
     audio.src = blobUrl || next;
     if (position_ms) audio.currentTime = position_ms / 1000;
     audio.play().catch((e) => {

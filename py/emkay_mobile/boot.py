@@ -137,11 +137,18 @@ EMKAY_LOGO = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><re
               'cx="346" cy="210" r="56" stroke="#555"/><path d="M290 210a56 56 0 0 1 112 0" stroke="#fff"/>'
               '<path d="M186 352q70 50 140 0" stroke="#fff"/></g></svg>')
 LOGO_PATH = os.path.expanduser("~/.local/share/emkay-mobile/logo.svg")
-DISTRIBUTION = {"webui": {
-    "branding": {"name": "Emkay", "logo": LOGO_PATH, "colors_dark": EMKAY_COLORS},
-    "theme": "dark",
-    "setup": {"steps": ["token", "language", "voice", "speak", "tryit"]},
-}}
+DISTRIBUTION = {
+    # ovos-media-provider-local looks in ~/Music, which in a browser is empty:
+    # Emkay's own (emkay_local_media) plays the folder the page was given
+    "media_providers": {"local": {"enabled": False}},
+    "webui": {
+        "branding": {"name": "Emkay", "logo": LOGO_PATH, "colors_dark": EMKAY_COLORS},
+        "theme": "dark",
+        "setup": {"steps": ["token", "language", "voice", "speak", "tryit"]},
+        # Emkay's own pages: local media (emkay_local_media)
+        "pages": {"packages": ["emkay-local-media"]},
+    },
+}
 
 #: The user layer of mycroft.conf, as on a device (~/.config/mycroft).
 CONF_PATH = os.path.expanduser("~/.config/mycroft/mycroft.conf")

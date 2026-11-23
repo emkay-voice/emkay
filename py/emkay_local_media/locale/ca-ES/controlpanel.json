@@ -1,0 +1,20 @@
+{
+ "lm.title": "Mitjans locals",
+ "lm.intro": "Escolta la teva música des d’una carpeta d’aquest dispositiu: «posa <cançó>», «posa alguna cosa de <artista>». Els fitxers es reprodueixen on són; no es copia res i res no surt del dispositiu.",
+ "lm.now": "Ara",
+ "lm.folder": "Carpeta",
+ "lm.none": "Cap carpeta triada",
+ "lm.songs": "Cançons",
+ "lm.indexing": "Llegint els títols…",
+ "lm.permission": "El navegador ho pregunta un cop per inici: toca «Permet la carpeta de música».",
+ "lm.session": "Cançons triades només per a aquesta sessió: desapareixen al proper inici.",
+ "lm.no_picker": "Aquest navegador no pot recordar una carpeta (mòbils): tria cançons.",
+ "lm.choose_folder": "Tria una carpeta de música",
+ "lm.allow": "Permet la carpeta de música",
+ "lm.choose_files": "Tria cançons",
+ "lm.rescan": "Revisa la carpeta de nou",
+ "lm.forget": "Oblida la carpeta",
+ "lm.forget.sure": "Oblidar la carpeta de música? Les cançons no es toquen.",
+ "lm.forget.done": "Oblidada.",
+ "lm.privacy": "L’Emkay llegeix l’inici de cada fitxer per al títol, l’artista i l’àlbum, com l’OVOS en un dispositiu. La llista es queda en aquest navegador."
+}

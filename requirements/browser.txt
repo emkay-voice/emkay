@@ -94,6 +94,9 @@ ovos-skill-ovosblog
 # news"); radio-browser stations through pyradios, and the news bulletins
 ovos-media-provider-pyradios
 ovos-media-provider-news
+# your own music from a folder on the device (py/emkay_local_media, #108):
+# its search and tags (tinytag), with the folder the page was given
+ovos-media-provider-local
 
 # short, current facts ("who is the prime minister of denmark", "where is the
 # eiffel tower") from Wikidata and OpenStreetMap, which a browser may read -

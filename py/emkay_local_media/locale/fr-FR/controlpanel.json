@@ -1,0 +1,20 @@
+{
+ "lm.title": "Médias locaux",
+ "lm.intro": "Écoutez votre propre musique depuis un dossier de cet appareil : « joue <chanson> », « joue quelque chose de <artiste> ». Les fichiers sont lus là où ils sont ; rien n’est copié, rien ne quitte l’appareil.",
+ "lm.now": "Maintenant",
+ "lm.folder": "Dossier",
+ "lm.none": "Aucun dossier choisi",
+ "lm.songs": "Chansons",
+ "lm.indexing": "Lecture des titres…",
+ "lm.permission": "Le navigateur demande une fois par démarrage : touchez « Autoriser le dossier de musique ».",
+ "lm.session": "Chansons choisies pour cette session seulement : elles disparaissent au prochain démarrage.",
+ "lm.no_picker": "Ce navigateur ne peut pas garder un dossier (téléphones) : choisissez des chansons.",
+ "lm.choose_folder": "Choisir un dossier de musique",
+ "lm.allow": "Autoriser le dossier de musique",
+ "lm.choose_files": "Choisir des chansons",
+ "lm.rescan": "Parcourir à nouveau le dossier",
+ "lm.forget": "Oublier le dossier",
+ "lm.forget.sure": "Oublier le dossier de musique ? Les chansons elles-mêmes ne sont pas touchées.",
+ "lm.forget.done": "Oublié.",
+ "lm.privacy": "Emkay lit le début de chaque fichier pour son titre, son artiste et son album, comme OVOS sur un appareil. La liste reste dans ce navigateur."
+}

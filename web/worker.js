@@ -311,6 +311,12 @@ const commands = {
   wakeword: ({ name }) => promising(main.wakeword, name),
   heard_text: ({ text }) => promising(main.heard_text, text),
   sound_bytes: ({ uri }) => main.sound_bytes(uri),
+  // your own music (web/localmedia.js, py/emkay_mobile/local_media.py)
+  local_media_listing: ({ folder, entries, keep }) => main.local_media_listing(folder, JSON.stringify(entries), keep),
+  local_media_tags: ({ path, head, tail }) => main.local_media_tags(path, new Uint8Array(head), new Uint8Array(tail)),
+  local_media_done: ({ keep }) => main.local_media_done(keep),
+  local_media_page: ({ state }) => main.local_media_page(JSON.stringify(state)),
+  local_media_forget: () => main.local_media_forget(),
   room_audio: ({ pcm }) => promising(main.room_audio, new Uint8Array(pcm)),
   heard: ({ pcm, rate }) => promising(main.heard, new Uint8Array(pcm), rate),
   recorded: ({ pcm, rate, name }) => promising(main.recorded, new Uint8Array(pcm), rate, name),
