@@ -1063,6 +1063,7 @@ const modelStatus = {
       if (what === "stt") opening.done();   // the ears opened: this start did not end there
     }
     if (state === "error") speechWait.fail(what);
+    if (state === "error" && what === "stt") opening.done();   // it failed, the page did not close
     if (!this.shown.has(key) && state === "ready") return;   // came from the cache: nothing to say
     this.shown.delete(key);
     this.render(what, name, 1, state);

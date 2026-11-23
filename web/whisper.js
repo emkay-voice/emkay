@@ -74,9 +74,13 @@ function once(key, job) {
   return busy.get(key);
 }
 
+/** Files the cache would not take (download()): fetched from the network from then on. */
+const refused = new Set();
+
 /** `url` downloaded into the cache (unless it is there); false: not on the server. */
 function download(store, net, url) {
   return once(`get ${url}`, async () => {
+    if (refused.has(url)) throw new Error("the cache refused it before");   // not downloaded again
     if (await store.match(url)) return true;
     const res = await net(url);
     if (!res.ok) return false;
@@ -85,7 +89,16 @@ function download(store, net, url) {
     const counted = res.body.pipeThrough(new TransformStream({
       transform(chunk, out) { loaded += chunk.length; onDownload?.(url, loaded, total); out.enqueue(chunk); },
     }));
-    await store.put(url, new Response(counted, { headers: res.headers }));
+    try {
+      await store.put(url, new Response(counted, { headers: res.headers }));
+    } catch (e) {
+      // the cache would not take it: an InPrivate/incognito window keeps
+      // only a little, in memory ("Cache.put() encountered a network
+      // error"); nothing half-kept is left behind
+      refused.add(url);
+      await store.delete(url).catch(() => {});
+      throw e;
+    }
     return true;
   });
 }
@@ -139,17 +152,27 @@ function splitCache(store) {
   return {
     async match(key) {
       const url = String(key?.url ?? key);
-      if (hub(url) && url.endsWith(".onnx")) {
-        await splitCached(store, url);
-        return graphOf(store, url);
+      try {
+        if (hub(url) && url.endsWith(".onnx")) {
+          await splitCached(store, url);
+          return await graphOf(store, url);
+        }
+        if (hub(url) && url.endsWith(".onnx_data")) {
+          await splitCached(store, core(url));
+          return await dataOf(store, url);
+        }
+        return await store.match(key);
+      } catch {
+        return undefined;      // not there to read: fetched (splitFetch)
       }
-      if (hub(url) && url.endsWith(".onnx_data")) {
-        await splitCached(store, core(url));
-        return dataOf(store, url);
-      }
-      return store.match(key);
     },
-    put: (key, response) => store.put(key, response),
+    // what transformers.js keeps itself (config.json, tokenizer, ...); a
+    // model file splitFetch() could not keep is not tried again whole
+    async put(key, response) {
+      const url = String(key?.url ?? key);
+      if (hub(url) && /\.onnx(_data)?$/.test(url)) return;
+      await store.put(key, response).catch((e) => console.warn(`[emkay] ${url.split("/").pop()} not cached:`, e));
+    },
   };
 }
 
@@ -170,10 +193,12 @@ function splitFetch(store, net) {
       if (await store.match(core(url) + GRAPH)) return dataOf(store, url);
       if (await download(store, net, url)) return store.match(url);
     } catch (e) {
-      // the cache would not take it (full, or a browser's error): as before,
-      // straight from the network, the model opened whole
-      console.warn(`[emkay] ${url.split("/").pop()} not kept split:`, e);
-      if (url.endsWith(".onnx")) return net(url, init);
+      // the cache would not take it (full, an InPrivate window, or a
+      // browser's error): straight from the network, both files, kept
+      // nowhere; a model published split opens split, a one-file one whole
+      console.warn(`[emkay] ${url.split("/").pop()} not kept in the cache, from the network:`, e);
+      const res = await net(url, init);
+      if (url.endsWith(".onnx") || res.ok) return res;
     }
     // a model with nothing to move has no data: an empty file, unused
     return new Response(new Uint8Array(0), { status: 200, headers: { "content-length": "0" } });
