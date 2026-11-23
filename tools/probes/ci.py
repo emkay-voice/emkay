@@ -152,7 +152,7 @@ PROBES = [
     ("media_browser.mjs", {"LOCAL_SONG": "Kaffesangen.wav", "SAY": "play kaffesangen"}, [], [
         r"local songs: 1",
         r'local media: \{"folder": "songs", "songs": 1, "state": "ready"',
-        r'playing: \{"uri":"emkay-local:songs/Kaffesangen\.wav"',
+        r'playing: \{"uri":"file:///emkay-local/songs/Kaffesangen\.wav"',
         r"media ok",
     ]),
     ("installable_browser.mjs", {}, [], [

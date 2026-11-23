@@ -7,8 +7,9 @@ tags as it would on a device. The files themselves stay where they are:
 nothing is copied, and nothing leaves the device.
 
 The search is ovos-media-provider-local's (its scoring, its Releases); only
-the index comes from the page, and the uri is ``emkay-local:<path>``, which
-the page plays from the folder (web/media.js). The index is kept between
+the index comes from the page, and the uri is ``file:///emkay-local/<path>``
+(OCP keeps only uris it knows how to play: file:// is one), which the page
+plays from the folder (web/media.js). The index is kept between
 starts, so only new or changed files are read again.
 
 Bus (``ovos.emkay.local_media.``), for the control panel's page:
@@ -29,6 +30,10 @@ from ovos_media_provider_local.indexer import (AUDIO_EXTENSIONS, IndexedFile, _e
                                                _title_from_filename)
 
 PREFIX = "ovos.emkay.local_media."
+#: where the page's files are, as OCP sees them: a file:// uri (OCP drops
+#: results whose uri it has no player or extractor for), outside Pyodide's
+#: own files; the page knows it (web/media.js)
+URI = "file:///emkay-local/"
 #: the bytes of a file's start the page sends, for its tags (FLAC and M4A
 #: keep theirs there, with a cover image that can be large)
 HEAD = 256 * 1024
@@ -50,7 +55,7 @@ class PageFile(IndexedFile):
 
     @property
     def uri(self) -> str:
-        return "emkay-local:" + quote(self.path)
+        return URI + quote(self.path)
 
 
 class _Sparse(io.RawIOBase):

@@ -232,8 +232,8 @@ def _local_file(uri):
     """The bytes of a file:// track (a skill's own audio, e.g. a song
     ovos-skill-karaoke made): it lives in Pyodide's file system, which the
     page's <audio> can't open, so the page gets the bytes (web/media.js)."""
-    if not (uri or "").startswith("file://"):
-        return None
+    if not (uri or "").startswith("file://") or uri.startswith("file:///emkay-local/"):
+        return None     # (your own music the page plays from its folder: local_media.py)
     from urllib.parse import unquote
     path = unquote(uri[len("file://"):])
     try:

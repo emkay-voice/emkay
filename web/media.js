@@ -23,12 +23,14 @@
  */
 
 const PREFIX = "ovos.audio.browser.";
+// your own music (web/localmedia.js): played from the folder, not Pyodide's files
+const LOCAL = "file:///emkay-local/";
 const POSITION_EVERY = 5000;   // ms between position reports while playing
 
 /**
  * @param {(type: string, data: object) => void} send - put a message on the bus
  * @param {{resolve?: (uri: string) => Promise<Blob|null>}} [opts] - resolve: the
- *   file for an emkay-local: track (your own music, web/localmedia.js)
+ *   file for a file:///emkay-local/ track (your own music, web/localmedia.js)
  * @returns {{onBus(msg): boolean, setLevel(level): void}}
  */
 export function createMediaPlayer(send, { resolve } = {}) {
@@ -78,7 +80,7 @@ export function createMediaPlayer(send, { resolve } = {}) {
   function play({ uri: next, position_ms = 0 }, bytes) {
     uri = next;
     dropBlob();
-    if (next?.startsWith("emkay-local:") && resolve) {
+    if (next?.startsWith(LOCAL) && resolve) {
       // your own music: the file from the folder, played where it is
       resolve(next).then((file) => {
         if (uri !== next) return;           // a newer play or a stop came first

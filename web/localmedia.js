@@ -6,7 +6,7 @@
 // and for new or changed files hands OVOS their first (and last) bytes, from
 // which tinytag reads title, artist and album as on a device
 // (py/emkay_local_media). "Play <song>" then finds them through OCP, and
-// web/media.js plays emkay-local:<path> from here. Nothing is copied and
+// web/media.js plays file:///emkay-local/<path> from here. Nothing is copied and
 // nothing leaves the device.
 //
 // A kept folder needs the browser's permission again after a restart, and
@@ -171,9 +171,9 @@ export function createLocalMedia({ call, askTap }) {
       act?.();
       return true;
     },
-    /** The File for an emkay-local: uri (web/media.js), or null. */
+    /** The File for a file:///emkay-local/ uri (web/media.js), or null. */
     async file(uri) {
-      const path = decodeURIComponent(uri.slice("emkay-local:".length));
+      const path = decodeURIComponent(uri.slice("file:///emkay-local/".length));
       const h = handles.get(path);
       if (!h) return null;
       return h instanceof File ? h : h.getFile();
