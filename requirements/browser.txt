@@ -149,7 +149,7 @@ ovos-control-panel>=0.0.1a103   # webui.companions, "provides", pages that need 
 # recognition on the phone (offline)
 ovos-stt-plugin-browser
 ovos-tts-plugin-piper-browser>=0.1.0a3
-ovos-phal-plugin-browser
+ovos-phal-plugin-browser>=0.1.0a7   # the sensors that ask, off until turned on
 ovos-audio-plugin-browser
 ovos-stt-plugin-whisper-browser
 

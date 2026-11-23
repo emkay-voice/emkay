@@ -92,6 +92,22 @@ boot.bus().emit(Message("ovos.phal.camera.get", {"path": "~/pictures/test.jpg"})
   log(`camera.get: ${await py(`import builtins, json, os
 p = os.path.expanduser("~/pictures/test.jpg")
 json.dumps(builtins.PICS) + " file bytes " + str(os.path.getsize(p) if os.path.exists(p) else 0)`)}`);
+  // a sensor that asks (phal-browser#2): off until turned on; turned on in
+  // the plugin's settings with the browser's permission given, it reports
+  log(`sensors before: ${await py(`import json
+import ovos_phal_plugin_browser as phal
+json.dumps(phal.plugin().sensor_states)`)}`);
+  await send("Browser.grantPermissions", { permissions: ["geolocation"] });
+  await send("Emulation.setGeolocationOverride", { latitude: 55.9731, longitude: 12.4961, accuracy: 25 });
+  await py(`from emkay_mobile import boot
+from ovos_bus_client.message import Message
+boot.bus().emit(Message("configuration.patch", {"config": {"PHAL": {"ovos-phal-plugin-browser": {"sensors": {"position": True}}}}}))
+"patched"`);
+  await sleep(5000);
+  log(`sensors after: ${await py(`import json
+import ovos_phal_plugin_browser as phal
+p = phal.plugin()
+json.dumps({"states": p.sensor_states, "position": p.sensors.get("position_location", [None])[0]})`)}`);
   // the panel: sensors page data, capabilities
   await js(`navigator.serviceWorker.ready.then(() => true)`);
   await js(`document.getElementById("menu-panel").click(); true`);
