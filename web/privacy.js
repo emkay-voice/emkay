@@ -99,6 +99,7 @@ export function createPrivacy({ t, $, openSettings }) {
   const fallback = {};           // stt/tts -> the fallback part in use meanwhile
   let active = null;             // "hear" | "voice" while listening or speaking
   let closeTimer = null;
+  let roomListeners = [];        // audio transformers listening to the room (on this device)
 
   const label = (part) => {
     switch (part?.what) {
@@ -130,7 +131,10 @@ export function createPrivacy({ t, $, openSettings }) {
       row.querySelector("b").textContent = t(`privacy.${k}`);
       row.querySelector("small").textContent = label(p);
       return row;
-    }), Object.assign(document.createElement("p"), { className: "small privacy-wake", textContent: t("privacy.wake") }));
+    }), Object.assign(document.createElement("p"), { className: "small privacy-wake", textContent: t("privacy.wake") }),
+    ...(roomListeners.length ? [Object.assign(document.createElement("p"), {
+      className: "small privacy-room", textContent: t("privacy.room") })] : []));
+    chip.classList.toggle("room", roomListeners.length > 0);
   }
 
   chip.onclick = () => openSettings();
@@ -149,6 +153,11 @@ export function createPrivacy({ t, $, openSettings }) {
       route = r;
       delete fallback.stt; delete fallback.tts;
       parts = { ...parts, hear: speechPart(r.stt) || parts.hear, voice: speechPart(r.tts) || parts.voice };
+      render();
+    },
+    /** The audio transformers listening to the room (listener.py), at boot and after a change. */
+    room(names) {
+      roomListeners = names || [];
       render();
     },
     /** emkay.speech.interim: a fallback plugin listens or speaks meanwhile. */

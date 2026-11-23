@@ -401,6 +401,7 @@ let housePanel = null;
     ovosLang = info.lang || ovosLang;
     sttModule = info.stt_module;
     privacy.boot(info);
+    privacy.room(info.room_listeners || []);
     ovosReady();
     showVisage();
     if (brain.kind === "local") bootStatus("boot.skills", 1, { n: info.skills.length });
@@ -664,6 +665,11 @@ async function micStream() {
  * chunks of 16 kHz audio, except while Emkay records, speaks or is muted.
  * Hearing it does what ovos-dinkum-listener does: tell OVOS
  * (recognizer_loop:wakeword) and listen for the question.
+ *
+ * The same audio goes to OVOS' audio transformers (py/emkay_mobile/listener.py,
+ * dinkum's feed_audio), only while one wants it (bootInfo.room_listeners), in
+ * 0.32 s pieces; when the worker is still busy with the last piece, the next
+ * is dropped rather than queued, as dinkum's transformers drop what they can't keep up with.
  */
 const wake = {
   worker: null,
@@ -727,6 +733,7 @@ const wake = {
             this.worker.postMessage({ cmd: "audio", pcm: chunk.slice() });
             this.chunks++;
             fill = 0;
+            if (bootInfo?.room_listeners?.length) room.add(chunk);
           }
         }
       }
@@ -785,6 +792,28 @@ const wake = {
   heard(name) {
     call("wakeword", { name });
     mic.listen();
+  },
+};
+
+/** Room audio for the audio transformers: 4 wake word chunks at a time (0.32 s). */
+const room = {
+  buf: new Int16Array(1280 * 4),
+  fill: 0,
+  busy: false,
+  sent: 0,      // pieces sent, and dropped while the worker was busy (diagnostics)
+  dropped: 0,
+  add(chunk) {
+    this.buf.set(chunk, this.fill);
+    this.fill += chunk.length;
+    if (this.fill < this.buf.length) return;
+    this.fill = 0;
+    if (this.busy) { this.dropped++; return; }   // behind: drop this piece
+    this.busy = true;
+    this.sent++;
+    const pcm = new Uint8Array(this.buf.buffer.slice(0));
+    Promise.resolve(call("room_audio", { pcm: pcm.buffer }, [pcm.buffer]))
+      .catch((e) => console.warn("[emkay] room audio", e))
+      .finally(() => { this.busy = false; });
   },
 };
 
@@ -1180,6 +1209,11 @@ function onBus(msg, data) {
   }
   if (msg.type === "emkay.speech.interim") { privacy.interim(msg.data); return modelStatus.interim(msg.data); }
   if (msg.type === "emkay.speech.waiting") return speechWait.show(msg.data);
+  if (msg.type === "emkay.room") {      // other audio transformers in the settings
+    if (bootInfo) bootInfo.room_listeners = msg.data?.names || [];
+    privacy.room(bootInfo?.room_listeners || []);
+    return;
+  }
   if (msg.type === "emkay.wakeword") {   // a new wake word in the settings
     wake.restart(msg.data.wake_word, msg.data.hotword).catch((e) => { wake.state = `error: ${e.message || e}`; });
     return;
@@ -1801,4 +1835,4 @@ $("activity-close").onclick = () => {
   $("network").hidden = false;
 };
 
-window.emkay = { call, mic, speaker, media, wake, activity, privacy, releaseMic, stt: () => sttModule };
+window.emkay = { call, mic, speaker, media, wake, room, activity, privacy, releaseMic, stt: () => sttModule };

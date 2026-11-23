@@ -111,6 +111,14 @@ PROBES = [
     ("wakeword_browser.mjs", {"SPEECH_WAV": str(REPO / "tools/probes/audio/what_time.wav"), "WAIT_S": "60", "WAKE_WORD": "hey_mycroft"}, [], [
         r"wake word engine ready in [0-9.]+s: precise",
         r"FAILED: timed out waiting for answer 1",
+        # and meanwhile the room audio went to the audio transformers (#105):
+        # auto volume measured it, without threads of its own (Pyodide)
+        r'room: \{"sent":[1-9]',
+        r'"ovos-audio-transformer-plugin-autovolume": [1-9][0-9.]*',
+        # and overheard manners listened, with its model in onnxruntime-web
+        # (shims/onnxruntime) and Emkay's own Whisper as its STT
+        r'"ovos-audio-transformer-plugin-overheard-manners": \{"ready": true',
+        r'"window_ms": [0-9]+, "pronunciations": [1-9]',     # its model really runs (one 1.5 s window, ms)
     ]),
     ("panel_mobile.mjs", {}, [], [
         r"after tapping Settings: /panel/config",       # the panel's menu by touch
@@ -118,10 +126,9 @@ PROBES = [
     ("noanswer_browser.mjs", {}, [], [
         r'"what time is it": said \["(It|Currently)[^|]*\|[^|]*\| sounds 0',   # answered: no error sound, no "couldn't help"
     ]),
-    ("noanswer_browser.mjs", {"QUESTIONS": "what is 17 times 23|what is the capital of australia|read my horoscope for leo"}, [], [
+    ("noanswer_browser.mjs", {"QUESTIONS": "what is 17 times 23|what is the capital of australia"}, [], [
         r'"what is 17 times 23": said \[[^\]]*391',            # the skills Emkay adds
         r'"what is the capital of australia": said \[[^\]]*Canberra',
-        r'"read my horoscope for leo": said \["[^"]*Leo',       # common reading
     ]),
     # the screen: ovos-gui-visage connects to the bus and to ovos-gui's GUI
     # socket through web/visage2-shim.js (issue #22)

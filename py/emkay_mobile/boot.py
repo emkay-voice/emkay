@@ -73,14 +73,15 @@ EMKAY_WAKE_WORD = "hey_emkay"
 #: The intent pipeline ovos-installer writes (defaults v10), so Emkay matches
 #: an installed device rather than ovos-config's bare default: it adds
 #: common query (knowledge skills compete, e.g. Wikipedia and
-#: ovos-skill-wiki-offline) and persona (high and low). Copied from
-#: ovos-installer's ansible/roles/ovos_config/templates/mycroft.conf.j2,
-#: November 2026.
+#: ovos-skill-wiki-offline). Copied from ovos-installer's
+#: ansible/roles/ovos_config/templates/mycroft.conf.j2, November 2026, without
+#: its persona stages (defaults v16): Emkay doesn't ship ovos-persona, and
+#: installed from the control panel it is put back by the rule
+#: (pipeline_place.py).
 INSTALLER_PIPELINE = (
     "ovos-stop-pipeline-plugin-high",
     "ovos-converse-pipeline-plugin",
     "ovos-ocp-pipeline-plugin-high",
-    "ovos-persona-pipeline-plugin-high",
     "ovos-padatious-pipeline-plugin-high",
     "ovos-m2v-pipeline-high",
     "ovos-fallback-pipeline-plugin-high",
@@ -89,13 +90,12 @@ INSTALLER_PIPELINE = (
     "ovos-adapt-pipeline-plugin-medium",
     "ovos-common-query-pipeline-plugin",
     "ovos-fallback-pipeline-plugin-medium",
-    "ovos-persona-pipeline-plugin-low",
     "ovos-fallback-pipeline-plugin-low",
 )
 
 #: Version of the one-time defaults below; each step is written once, so a
 #: phone set up by an older build gets only the steps it has not had yet.
-DEFAULTS_VERSION = 15
+DEFAULTS_VERSION = 16
 #: the package index the control panel searches (defaults v7)
 STORE_INDEX = "https://store.emkay.ai"
 
@@ -103,6 +103,15 @@ STORE_INDEX = "https://store.emkay.ai"
 #: site itself is built from the alpha channel).
 ALPHA_CONSTRAINTS = ("https://raw.githubusercontent.com/OpenVoiceOS/ovos-releases/"
                      "refs/heads/main/constraints-alpha.txt")
+
+#: good manners, first in the pipeline (defaults v16)
+GOOD_MANNERS = "ovos-good-manners-pipeline-plugin"
+#: persona's stages, out of the pipeline (defaults v16): not shipped any more
+PERSONA = "ovos-persona-pipeline-plugin"
+#: audio transformers Emkay turns on (defaults v16): they listen to the room
+#: between wake words, on the device, and keep or send nothing of the sound
+AUDIO_TRANSFORMERS = ("ovos-audio-transformer-plugin-overheard-manners",
+                      "ovos-audio-transformer-plugin-autovolume")
 
 #: Emkay as a distribution of OpenVoiceOS: what it sets in mycroft.conf's
 #: system layer, below the user's, as a distribution's image would in
@@ -389,6 +398,10 @@ def _browser_defaults(done: int) -> dict:
          the `fallback_module` v13 set (the public OVOS servers) goes. While
          a model downloads, Emkay says so and offers the servers for the
          moment (speech.py, servers_meanwhile)
+     16. persona's stages leave the pipeline (PERSONA, no longer shipped),
+         good manners goes first in it (GOOD_MANNERS), and the
+         room is listened to for overheard swearing and its noise level
+         (AUDIO_TRANSFORMERS: overheard-manners and auto volume, on)
     The m2v model folders and the unused pipeline plugins are written on
     every boot, since they follow whatever the site shipped and the
     pipeline the user chose.
@@ -476,6 +489,26 @@ def _browser_defaults(done: int) -> dict:
         # load YesNo plugin" and fell back to the same engine built in.
         if not Configuration().get("skills", {}).get("ask_yesno_plugin"):
             out.setdefault("skills", {})["ask_yesno_plugin"] = "ovos-yes-no-plugin"
+    if done < 16:
+        # good manners (ovos-good-manners-pipeline-plugin, which
+        # overheard-manners brings): first in the pipeline, as its README asks
+        before = out.get("intents", {}).get("pipeline") or Configuration().get("intents", {}).get("pipeline", [])
+        # persona's stages go: Emkay no longer ships it (it comes back by the
+        # rule if installed from the control panel)
+        kept = [p for p in before if not p.startswith(PERSONA)]
+        pipeline = _with_plugin(kept, GOOD_MANNERS) or kept
+        if pipeline != list(before):
+            out.setdefault("intents", {})["pipeline"] = pipeline
+        # and the room listened to, on the device, for overheard swearing and
+        # for how noisy it is (AUDIO_TRANSFORMERS). Named in
+        # listener.audio_transformers is the listener's opt-in (as dinkum
+        # reads it); the plugins read their own settings from the top-level
+        # audio_transformers section (OPM's AudioTransformer), where their
+        # control panel pages write. Both start enabled.
+        for tx in (out.setdefault("listener", {}).setdefault("audio_transformers", {}),
+                   out.setdefault("audio_transformers", {})):
+            for name in AUDIO_TRANSFORMERS:
+                tx.setdefault(name, {})
     user = read_user_config()
     # defaults v3 turned padaos off (a ~30 s regex compile after boot); without
     # it padatious matched "what time is it" to the timer skill. v4 takes
@@ -538,15 +571,21 @@ def _blacklist(out: dict, skill_ids) -> None:
     skills["blacklisted_skills"] = blacklisted
 
 
-def _with_common_reading(pipeline: list) -> list:
-    """`pipeline` with ovos-common-reading-pipeline-plugin's two stages added
-    where its README asks (pipeline_place.OVERRIDES); [] when nothing is to
+def _with_plugin(pipeline: list, plugin_id: str) -> list:
+    """`pipeline` with `plugin_id`'s stages added where its README asks
+    (pipeline_place.OVERRIDES), else by the rule; [] when nothing is to
     change (already there, plugin missing, or no pipeline to edit)."""
     from ovos_plugin_manager.pipeline import OVOSPipelineFactory
     from . import pipeline_place
-    if "ovos-common-reading-pipeline-plugin" not in OVOSPipelineFactory.get_installed_pipeline_ids():
+    if plugin_id not in OVOSPipelineFactory.get_installed_pipeline_ids():
         return []
-    return pipeline_place.place(pipeline, "ovos-common-reading-pipeline-plugin")
+    return pipeline_place.place(pipeline, plugin_id)
+
+
+def _with_common_reading(pipeline: list) -> list:
+    """`pipeline` with ovos-common-reading-pipeline-plugin's two stages added
+    where its README asks; [] when nothing is to change."""
+    return _with_plugin(pipeline, "ovos-common-reading-pipeline-plugin")
 
 
 def _phone_language():
@@ -796,8 +835,9 @@ def start(on_message=None, user_config=None) -> dict:
             "skipped_threads": list(browser.STARTED)}
 
 
-def utterance(text: str, lang: str = None, session=None):
-    """Put what the user said on the bus, the way ovos-dinkum-listener does."""
+def utterance(text: str, lang: str = None, session=None, context: dict = None):
+    """Put what the user said on the bus, the way ovos-dinkum-listener does
+    (`context`: what the audio transformers found, as dinkum's stt_context)."""
     from ovos_bus_client.message import Message
     from ovos_bus_client.session import SessionManager
     from ovos_config import Configuration
@@ -805,7 +845,7 @@ def utterance(text: str, lang: str = None, session=None):
     sess = session or SessionManager.get_default_session()
     _bus.emit(Message("recognizer_loop:utterance",
                       {"utterances": [text], "lang": lang},
-                      {"session": sess.serialize(), "source": "emkay",
+                      {**(context or {}), "session": sess.serialize(), "source": "emkay",
                        "destination": "skills"}))
 
 

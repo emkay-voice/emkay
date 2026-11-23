@@ -106,6 +106,14 @@ globalThis.emkayWhisper = {
   },
 };
 
+// ONNX models for Python plugins (py/emkay_mobile/shims/onnxruntime, web/ortshim.js):
+// copies, now, of what may be views into Pyodide's memory
+globalThis.emkayOrt = {
+  create: (bytes) => { const own = bytes.slice(); return speechCall("ort", "create", [own], [own.buffer]); },
+  run: (id, names, feeds) => speechCall("ort", "run", [id, [...names],
+    [...feeds].map((f) => ({ name: f.name, type: f.type, dims: [...f.dims], data: f.data.slice() }))]),
+};
+
 // Machine translation for Emkay Dev's "Add language" (web/mt.js), for
 // py/emkay_mobile/translate.py through `js`; loaded the first time it is asked for
 globalThis.emkayMT = {
@@ -303,6 +311,7 @@ const commands = {
   wakeword: ({ name }) => promising(main.wakeword, name),
   heard_text: ({ text }) => promising(main.heard_text, text),
   sound_bytes: ({ uri }) => main.sound_bytes(uri),
+  room_audio: ({ pcm }) => promising(main.room_audio, new Uint8Array(pcm)),
   heard: ({ pcm, rate }) => promising(main.heard, new Uint8Array(pcm), rate),
   recorded: ({ pcm, rate, name }) => promising(main.recorded, new Uint8Array(pcm), rate, name),
   playback_started: ({ ident, visemes }) => promising(main.playback_started, ident, JSON.stringify(visemes || [])),
@@ -363,6 +372,8 @@ const commands = {
   },
   /** Run a line of Python and return its value as text (for debugging). */
   python: ({ code }) => String(py.runPython(code)),
+  // the same where the code may wait (JSPI: a model run, pyodide.ffi.run_sync)
+  python_async: async ({ code }) => String(await py.runPythonAsync(code)),
   /** The same through runPythonAsync: Python that may wait (JSPI, issue #20). */
   python_async: async ({ code }) => String(await py.runPythonAsync(code)),
 };

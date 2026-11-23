@@ -22,8 +22,14 @@ unused stay unused, and a stage the user took out is not put back.
 
 #: placements the rule gets wrong: plugin id -> {stage: (where, anchors)}.
 #: "after": right after the first anchor found; "before": right before it;
-#: "skip": that stage is left out (a plugin that only uses some of its three).
+#: "first": first in the pipeline; "skip": that stage is left out (a plugin
+#: that only uses some of its three).
 OVERRIDES = {
+    # its README: first, so it sees every utterance before any stage claims
+    # it; it observes and never matches
+    "ovos-good-manners-pipeline-plugin": {
+        None: ("first", []), "high": ("first", []), "medium": ("skip", []), "low": ("skip", []),
+    },
     # one stage: right after OVOS' sure matches (the last high stage), before
     # common query, persona and the fallbacks - what Home Assistant's Assist
     # recognizes is HA's before a solver or a chatbot answers it (its README)
@@ -91,6 +97,9 @@ def place(pipeline: list, plugin_id: str, matchers: list = None) -> list:
         if stage in over:
             where, anchors = over[stage]
             if where == "skip":
+                continue
+            if where == "first":
+                out.insert(0, m)
                 continue
             i = _index(out, anchors)
             i = (len(out) if where == "before" else 0) if i is None else (i + 1 if where == "after" else i)

@@ -268,6 +268,11 @@ body { font-family: system-ui, sans-serif; color: #fff; -webkit-tap-highlight-co
 .privacy-row small { color: #9ab; }
 .privacy-row.external, .privacy-row.external small { color: #f0b429; }
 .privacy-wake { margin: 2px 0 0; color: #789; }
+.privacy-room { margin: 2px 0 0; color: #789; }
+/* audio transformers listen to the room: a small dot by the eyes */
+.privacy-chip.room { position: relative; }
+.privacy-chip.room::after { content: ""; position: absolute; top: 3px; right: 3px; width: 6px; height: 6px;
+  border-radius: 50%; background: currentColor; opacity: .7; }
 .privacy.flash { animation: privacy-flash 1.2s ease-out; }
 @keyframes privacy-flash { from { border-color: #22a7f0; } to { border-color: #1d2430; } }
 
