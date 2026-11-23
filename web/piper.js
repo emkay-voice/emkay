@@ -13,6 +13,7 @@
 // ovos-tts-plugin-piper writes one.
 
 import { LEAN, oneAtATime } from "./model-queue.js";
+import { open as openSplit } from "./onnx-split.js";
 
 const BASE = new URL("./", import.meta.url).href;
 const VOICES = "https://huggingface.co/rhasspy/piper-voices/resolve/main/";
@@ -125,7 +126,7 @@ function session(voice) {
       const [cfgBytes, model] = await Promise.all([
         cached(url + ".json"), cached(url, (f) => modelProgress("tts", voice, f))]);
       const cfg = JSON.parse(new TextDecoder().decode(cfgBytes));
-      const s = await o.InferenceSession.create(model, { executionProviders: ["wasm"], ...LEAN });
+      const s = await openSplit(o, model, { executionProviders: ["wasm"], ...LEAN });
       await loadPhonemizer();
       loaded.add(voice);
       modelProgress("tts", voice, 1, "ready");

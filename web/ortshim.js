@@ -6,6 +6,8 @@
 // neither the page nor Pyodide. Tensors cross as raw bytes with their type
 // and shape.
 
+import { open as openSplit } from "./onnx-split.js";
+
 const BASE = new URL("./", import.meta.url).href;
 const ARRAYS = {
   float32: Float32Array, float64: Float64Array, int64: BigInt64Array, int32: Int32Array,
@@ -28,7 +30,7 @@ function ort() {
 /** A session for the model's bytes: {id, inputs, outputs} (their names). */
 export async function create(bytes) {
   const o = await ort();
-  const s = await o.InferenceSession.create(bytes, { executionProviders: ["wasm"] });
+  const s = await openSplit(o, bytes, { executionProviders: ["wasm"] });   // weights as external data
   sessions.set(++ids, s);
   return { id: ids, inputs: [...s.inputNames], outputs: [...s.outputNames] };
 }
