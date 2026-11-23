@@ -1,0 +1,20 @@
+{
+ "lm.title": "Local media",
+ "lm.intro": "Play your own music from a folder on this device: \"play <song>\", \"play something by <artist>\". The files are played where they are; nothing is copied, and nothing leaves the device.",
+ "lm.now": "Now",
+ "lm.folder": "Folder",
+ "lm.none": "No folder chosen",
+ "lm.songs": "Songs",
+ "lm.indexing": "Reading the songs' titles…",
+ "lm.permission": "The browser asks once per start: tap “Allow the music folder”.",
+ "lm.session": "Songs chosen for this session only: they are gone at the next start.",
+ "lm.no_picker": "This browser can't keep a folder (phones): choose songs instead.",
+ "lm.choose_folder": "Choose a music folder",
+ "lm.allow": "Allow the music folder",
+ "lm.choose_files": "Choose songs",
+ "lm.rescan": "Look through the folder again",
+ "lm.forget": "Forget the folder",
+ "lm.forget.sure": "Forget the music folder? The songs themselves are not touched.",
+ "lm.forget.done": "Forgotten.",
+ "lm.privacy": "Emkay reads the start of each file for its title, artist and album, as OVOS does on a device. The list stays in this browser."
+}

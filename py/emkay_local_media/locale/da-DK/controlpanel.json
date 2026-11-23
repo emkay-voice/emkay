@@ -1,0 +1,20 @@
+{
+ "lm.title": "Lokale medier",
+ "lm.intro": "Spil din egen musik fra en mappe på denne enhed: \"spil <sang>\", \"spil noget med <kunstner>\". Filerne spilles, hvor de ligger; intet kopieres, og intet forlader enheden.",
+ "lm.now": "Lige nu",
+ "lm.folder": "Mappe",
+ "lm.none": "Ingen mappe valgt",
+ "lm.songs": "Sange",
+ "lm.indexing": "Læser sangenes titler…",
+ "lm.permission": "Browseren spørger én gang pr. start: tryk “Giv adgang til musikmappen”.",
+ "lm.session": "Sange valgt kun til denne gang: de er væk ved næste start.",
+ "lm.no_picker": "Denne browser kan ikke huske en mappe (telefoner): vælg sange i stedet.",
+ "lm.choose_folder": "Vælg en musikmappe",
+ "lm.allow": "Giv adgang til musikmappen",
+ "lm.choose_files": "Vælg sange",
+ "lm.rescan": "Gennemgå mappen igen",
+ "lm.forget": "Glem mappen",
+ "lm.forget.sure": "Glem musikmappen? Selve sangene røres ikke.",
+ "lm.forget.done": "Glemt.",
+ "lm.privacy": "Emkay læser starten af hver fil for titel, kunstner og album, som OVOS gør på en enhed. Listen bliver i denne browser."
+}

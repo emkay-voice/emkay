@@ -1,0 +1,42 @@
+{
+ "controlpanel": 1,
+ "id": "local-media",
+ "title": "lm.title",
+ "group": "music",
+ "order": 10,
+ "icon": "controlpanel.svg",
+ "bus": "ovos.emkay.local_media.",
+ "blocks": [
+  {
+   "type": "text",
+   "text": "lm.intro"
+  },
+  {
+   "type": "status",
+   "heading": "lm.now",
+   "query": "ovos.emkay.local_media.status",
+   "refresh": 5,
+   "rows": [
+    {"label": "lm.folder", "value": "{folder}", "when": "has_folder"},
+    {"label": "lm.folder", "text": "lm.none", "when": "!has_folder"},
+    {"label": "lm.songs", "value": "{songs}", "when": "has_folder"},
+    {"text": "lm.indexing", "when": "indexing"},
+    {"text": "lm.permission", "when": "needs_permission"},
+    {"text": "lm.session", "when": "session"},
+    {"text": "lm.no_picker", "when": "!can_folder"}
+   ],
+   "actions": [
+    {"label": "lm.choose_folder", "send": "ovos.emkay.local_media.choose_folder", "privileged": false, "when": "can_folder"},
+    {"label": "lm.allow", "send": "ovos.emkay.local_media.allow", "privileged": false, "when": "needs_permission"},
+    {"label": "lm.choose_files", "send": "ovos.emkay.local_media.choose_files", "privileged": false},
+    {"label": "lm.rescan", "send": "ovos.emkay.local_media.rescan", "privileged": false, "when": "has_folder"},
+    {"label": "lm.forget", "send": "ovos.emkay.local_media.forget", "privileged": false, "when": "has_folder",
+     "confirm": "lm.forget.sure", "done": "lm.forget.done"}
+   ]
+  },
+  {
+   "type": "text",
+   "text": "lm.privacy"
+  }
+ ]
+}

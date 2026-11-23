@@ -94,6 +94,14 @@ try {
     log(`install: ${await js(`window.__bus.filter((t) => t.startsWith("ovos.pip")).join(" ")`)}`);
     await sleep(Number(process.env.LOAD_MS || 20000));   // the skill loads
   }
+  if (process.env.LOCAL_SONG) {   // your own music (#108): a song chosen for this session
+    const name = process.env.LOCAL_SONG;
+    const n = await js(`fetch(${JSON.stringify(toneUri(15))}).then((r) => r.blob())
+      .then((b) => window.emkay.localMedia.useFiles([new File([b], ${JSON.stringify(name)}, {type: "audio/wav"})]))`);
+    log(`local songs: ${n}`);
+    const lib = await js(`window.emkay.call("python", {code: "import json\\nfrom emkay_mobile import local_media\\njson.dumps(local_media.status())"}).then(String)`);
+    log(`local media: ${lib}`);
+  }
   if (process.env.SAY) {
     log(`say: ${process.env.SAY}`);
     await js(`window.emkay.call("say", {text: ${JSON.stringify(process.env.SAY)}}); true`);

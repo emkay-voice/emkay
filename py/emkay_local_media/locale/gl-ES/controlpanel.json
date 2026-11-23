@@ -1,0 +1,20 @@
+{
+ "lm.title": "Medios locais",
+ "lm.intro": "Escoita a túa propia música dende un cartafol deste dispositivo: «pon <canción>», «pon algo de <artista>». Os ficheiros reprodúcense onde están; non se copia nada e nada sae do dispositivo.",
+ "lm.now": "Agora",
+ "lm.folder": "Cartafol",
+ "lm.none": "Ningún cartafol escollido",
+ "lm.songs": "Cancións",
+ "lm.indexing": "Lendo os títulos…",
+ "lm.permission": "O navegador pregunta unha vez por inicio: toca «Permitir o cartafol de música».",
+ "lm.session": "Cancións escollidas só para esta sesión: desaparecen no próximo inicio.",
+ "lm.no_picker": "Este navegador non pode lembrar un cartafol (móbiles): escolle cancións.",
+ "lm.choose_folder": "Escoller un cartafol de música",
+ "lm.allow": "Permitir o cartafol de música",
+ "lm.choose_files": "Escoller cancións",
+ "lm.rescan": "Revisar o cartafol de novo",
+ "lm.forget": "Esquecer o cartafol",
+ "lm.forget.sure": "Esquecer o cartafol de música? As cancións non se tocan.",
+ "lm.forget.done": "Esquecido.",
+ "lm.privacy": "Emkay le o inicio de cada ficheiro para o título, artista e álbum, como OVOS nun dispositivo. A lista queda neste navegador."
+}

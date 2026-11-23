@@ -1,0 +1,20 @@
+{
+ "lm.title": "Multimédia local",
+ "lm.intro": "Ouve a tua própria música a partir de uma pasta deste dispositivo: «toca <canção>», «toca algo de <artista>». Os ficheiros são tocados onde estão; nada é copiado e nada sai do dispositivo.",
+ "lm.now": "Agora",
+ "lm.folder": "Pasta",
+ "lm.none": "Nenhuma pasta escolhida",
+ "lm.songs": "Canções",
+ "lm.indexing": "A ler os títulos…",
+ "lm.permission": "O navegador pergunta uma vez por arranque: toca em «Permitir a pasta de música».",
+ "lm.session": "Canções escolhidas só para esta sessão: desaparecem no próximo arranque.",
+ "lm.no_picker": "Este navegador não consegue guardar uma pasta (telemóveis): escolhe canções.",
+ "lm.choose_folder": "Escolher uma pasta de música",
+ "lm.allow": "Permitir a pasta de música",
+ "lm.choose_files": "Escolher canções",
+ "lm.rescan": "Rever a pasta",
+ "lm.forget": "Esquecer a pasta",
+ "lm.forget.sure": "Esquecer a pasta de música? As canções não são tocadas.",
+ "lm.forget.done": "Esquecida.",
+ "lm.privacy": "O Emkay lê o início de cada ficheiro para o título, artista e álbum, como o OVOS num dispositivo. A lista fica neste navegador."
+}

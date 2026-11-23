@@ -1,0 +1,20 @@
+{
+ "lm.title": "Media locali",
+ "lm.intro": "Ascolta la tua musica da una cartella di questo dispositivo: «riproduci <canzone>», «riproduci qualcosa di <artista>». I file sono riprodotti dove sono; nulla viene copiato e nulla lascia il dispositivo.",
+ "lm.now": "Ora",
+ "lm.folder": "Cartella",
+ "lm.none": "Nessuna cartella scelta",
+ "lm.songs": "Canzoni",
+ "lm.indexing": "Lettura dei titoli…",
+ "lm.permission": "Il browser chiede una volta per avvio: tocca «Consenti la cartella musica».",
+ "lm.session": "Canzoni scelte solo per questa sessione: spariscono al prossimo avvio.",
+ "lm.no_picker": "Questo browser non può ricordare una cartella (telefoni): scegli delle canzoni.",
+ "lm.choose_folder": "Scegli una cartella musica",
+ "lm.allow": "Consenti la cartella musica",
+ "lm.choose_files": "Scegli canzoni",
+ "lm.rescan": "Ricontrolla la cartella",
+ "lm.forget": "Dimentica la cartella",
+ "lm.forget.sure": "Dimenticare la cartella musica? Le canzoni non vengono toccate.",
+ "lm.forget.done": "Dimenticata.",
+ "lm.privacy": "Emkay legge l’inizio di ogni file per titolo, artista e album, come OVOS su un dispositivo. L’elenco resta in questo browser."
+}
