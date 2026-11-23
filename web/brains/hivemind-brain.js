@@ -410,7 +410,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
           hear: sp ? { what: "house", host: settings.host } : { what: stt === BROWSER_STT ? "browser" : "device" },
           voice: sp ? { what: "house", host: settings.host } : { what: "device" },
         },
-        // the house's own control panel (Emkay Home), for ⚙ → Settings
+        // the house's own control panel (Emkay Home), for ⚙ → Control panel
         house_panel: settings.panel || null,
       };
     },

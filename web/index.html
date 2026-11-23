@@ -22,14 +22,14 @@
     <p id="boot-text">Loading…</p>
     <div class="bar"><div id="boot-bar"></div></div>
     <p id="boot-version" class="small boot-version"></p>
-    <!-- first start only: set up now, or start on the defaults -->
+    <!-- first start only: start on the defaults, or set up: where Emkay
+         thinks first (brains/choose.js), then the control panel's guide,
+         with the steps Emkay chose for it (boot.py, DISTRIBUTION) -->
     <div id="first" class="first" hidden>
       <p data-i18n="first.text"></p>
-      <button id="first-setup" data-i18n="first.setup"></button>
     </div>
     <button id="start" data-i18n="start" hidden></button>
-    <!-- first start only: Emkay as a satellite of an assistant in the house (brains/choose.js) -->
-    <button id="first-house" class="link" data-i18n="first.house" hidden></button>
+    <button id="first-setup" class="secondary" data-i18n="first.setup" hidden></button>
     <p class="small"><span data-i18n="about"></span> · <a href="https://github.com/emkay-voice/emkay" data-i18n="source"></a></p>
   </div>
   <button id="mic" class="mic" data-i18n-aria="mic" hidden></button>
@@ -41,53 +41,19 @@
   <form id="type" class="type" hidden><input id="type-text" data-i18n-placeholder="type" autocomplete="off"></form>
   <button id="keyboard" class="keyboard" data-i18n-aria="keyboard" hidden>⌨</button>
   <button id="menu-button" class="menu-button" data-i18n-aria="menu" hidden>⚙</button>
-  <!-- where Emkay hears, speaks and thinks; a tap opens ⚙ → Settings (privacy.js) -->
+  <!-- where Emkay hears, speaks and thinks; a tap opens ⚙ at its three lines (privacy.js) -->
   <button id="privacy-chip" class="privacy-chip" hidden></button>
 
-  <!-- the menu: OVOS' own settings (backups too: the panel's Backup page),
-       full screen, about -->
+  <!-- the ⚙ menu, one level: where Emkay hears, speaks and thinks, then
+       what belongs to this device (the brain, Guardian), the store, the
+       control panel for everything about the assistant, and about.
+       What opens over the face returns here when it closes (app.js
+       openFromMenu). Each entry: an Emkay-style icon
+       (build/icons/make_icons.py), a name and a line on what it is. -->
   <div id="menu" class="menu" hidden>
     <div class="menu-card">
       <h2>Emkay</h2>
-      <p id="storage-state" class="small"></p>
-      <!-- each entry: Emkay-style icon (build/icons/make_icons.py), name and
-           a line on what it is; what opens over the face returns here
-           when it closes (app.js openFromMenu) -->
-      <div id="menu-main">
-      <button id="menu-settings" class="menu-item">
-        <img src="menu/settings.svg" alt="">
-        <span><b data-i18n="menu.settings"></b><small data-i18n="menu.settings.hint"></small></span>
-      </button>
-      <a id="menu-store" class="menu-item" href="https://store.emkay.ai/" target="_blank" rel="noopener">
-        <img src="menu/store.svg" alt="">
-        <span><b data-i18n="menu.store"></b><small data-i18n="menu.store.hint"></small></span>
-      </a>
-      <button id="menu-network" class="menu-item">
-        <img src="menu/guardian.svg" alt="">
-        <span><b data-i18n="menu.network"></b><small data-i18n="menu.network.hint"></small></span>
-      </button>
-      <button id="menu-kiosk" class="menu-item">
-        <img src="menu/kiosk.svg" alt="">
-        <span><b data-i18n="menu.kiosk"></b><small data-i18n="menu.kiosk.hint"></small></span>
-      </button>
-      <button id="menu-install" class="menu-item" hidden>
-        <img src="menu/install.svg" alt="">
-        <span><b data-i18n="menu.install"></b><small data-i18n="menu.install.hint"></small></span>
-      </button>
-      <p id="install-ios" class="small" data-i18n="install.ios" hidden></p>
-      <button id="menu-about" class="menu-item">
-        <img src="icon.svg" alt="">
-        <span><b data-i18n="menu.about"></b><small data-i18n="menu.about.hint"></small></span>
-      </button>
-      <p class="small"><span data-i18n="about"></span> ·
-        <a href="https://github.com/emkay-voice/emkay" target="_blank" rel="noopener" data-i18n="source"></a></p>
-      </div>
-      <!-- Settings: where Emkay thinks, OVOS' control panel and, for
-           developers only, a skill straight from GitHub (skills come from
-           the store) -->
-      <div id="menu-settings-page" hidden>
-      <h3 class="menu-sub with-icon"><img src="menu/settings.svg" alt=""><span data-i18n="menu.settings"></span></h3>
-      <!-- privacy: where Emkay hears, speaks and thinks, above what changes it (privacy.js) -->
+      <!-- privacy: where Emkay hears, speaks and thinks (privacy.js) -->
       <section id="privacy" class="privacy" aria-labelledby="privacy-title">
         <p id="privacy-title" class="privacy-title" data-i18n="privacy.title"></p>
         <div id="privacy-rows" class="privacy-rows"></div>
@@ -96,21 +62,42 @@
         <img src="menu/brain.svg" alt="">
         <span><b data-i18n="menu.brain"></b><small id="menu-brain-hint"></small></span>
       </button>
+      <button id="menu-network" class="menu-item">
+        <img src="menu/guardian.svg" alt="">
+        <span><b data-i18n="menu.network"></b><small data-i18n="menu.network.hint"></small></span>
+      </button>
+      <a id="menu-store" class="menu-item" href="https://store.emkay.ai/" target="_blank" rel="noopener">
+        <img src="menu/store.svg" alt="">
+        <span><b data-i18n="menu.store"></b><small data-i18n="menu.store.hint"></small></span>
+      </a>
       <button id="menu-panel" class="menu-item">
         <img src="menu/panel.svg" alt="">
         <span><b data-i18n="menu.panel"></b><small data-i18n="menu.panel.hint"></small></span>
       </button>
-      <div id="menu-dev" class="menu-dev">
-      <p class="small" data-i18n="menu.dev"></p>
-      <button id="menu-github" class="menu-item">
-        <img src="menu/github.svg" alt="">
-        <span><b data-i18n="menu.github"></b><small data-i18n="menu.github.hint"></small></span>
+      <!-- a satellite has no panel of its own to go full screen from (the
+           house's panel can't reach this screen), so it keeps the entry -->
+      <button id="menu-kiosk" class="menu-item" hidden>
+        <img src="menu/kiosk.svg" alt="">
+        <span><b data-i18n="menu.kiosk"></b><small data-i18n="menu.kiosk.hint"></small></span>
       </button>
-      </div>
-      <button id="menu-back" class="secondary" data-i18n="menu.back"></button>
-      </div>
+      <button id="menu-about" class="menu-item">
+        <img src="icon.svg" alt="">
+        <span><b data-i18n="menu.about"></b><small data-i18n="menu.about.hint"></small></span>
+      </button>
+      <p id="storage-state" class="small"></p>
       <button id="menu-close" class="secondary" data-i18n="close"></button>
     </div>
+  </div>
+
+  <!-- install as an app: offered once, next to the ⚙ button, when the
+       browser can (beforeinstallprompt) or on an iPhone (Share → Add to
+       Home Screen); "install yourself as an app" works by voice too -->
+  <div id="install-tip" class="install-tip" role="dialog" aria-labelledby="install-tip-title" hidden>
+    <img src="menu/install.svg" alt="">
+    <span><b id="install-tip-title" data-i18n="menu.install"></b>
+      <small id="install-tip-text" data-i18n="menu.install.hint"></small></span>
+    <button id="install-tip-yes" data-i18n="menu.install"></button>
+    <button id="install-tip-no" class="link" data-i18n="close"></button>
   </div>
 
   <!-- about: who made it, and what it stands on -->
@@ -132,6 +119,13 @@
           – <span data-i18n="about.pyodide"></span></li>
       </ul>
       <p class="small" data-i18n="about.others"></p>
+      <div id="menu-dev" class="menu-dev">
+        <p class="small" data-i18n="menu.dev"></p>
+        <button id="menu-github" class="menu-item">
+          <img src="menu/github.svg" alt="">
+          <span><b data-i18n="menu.github"></b><small data-i18n="menu.github.hint"></small></span>
+        </button>
+      </div>
       <p class="small"><a id="about-release" target="_blank" rel="noopener"></a> ·
         <span id="about-version"></span> ·
         <a href="https://emkay.ai" target="_blank" rel="noopener">emkay.ai</a> ·
