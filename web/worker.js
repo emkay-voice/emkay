@@ -200,7 +200,7 @@ function bootLanguages(siteLangs) {
  * m2v models of the languages OVOS boots in are fetched (bootLanguages);
  * downloads already on this device (same hash) are skipped.
  */
-async function boot({ userConfig }) {
+async function boot({ userConfig, crashed = false }) {
   const b = await build;
   status("boot.python");
   const index = new URL(b.pyodide_index, self.location).href;  // served with the site
@@ -264,6 +264,11 @@ importlib.invalidate_caches()
 `);
   // the browser knows its time zone; the timezonefinder stand-in reports it
   py.runPython(`import os; os.environ["EMKAY_TZ"] = ${JSON.stringify(Intl.DateTimeFormat().resolvedOptions().timeZone)}`);
+  // the device's memory as the browser reports it (Chrome rounds it down to
+  // a power of two; Safari and Firefox say nothing), and whether the last start ended
+  // with the page closed (app.js, opening): boot.py picks the light STT model
+  py.runPython(`import os; os.environ["EMKAY_DEVICE_MEMORY"] = ${JSON.stringify(String(self.navigator.deviceMemory ?? ""))}; ` +
+    `os.environ["EMKAY_LAST_START_CRASHED"] = ${JSON.stringify(crashed ? "1" : "")}`);
   // OVOS' default language is the phone's when the site has intents for it
   // (boot._phone_language); these are the phone's languages and the site's
   py.globals.set("PHONE_LANGS", (self.navigator.languages || [self.navigator.language]).join(","));

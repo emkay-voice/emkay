@@ -95,7 +95,7 @@ INSTALLER_PIPELINE = (
 
 #: Version of the one-time defaults below; each step is written once, so a
 #: phone set up by an older build gets only the steps it has not had yet.
-DEFAULTS_VERSION = 16
+DEFAULTS_VERSION = 17
 #: the package index the control panel searches (defaults v7)
 STORE_INDEX = "https://store.emkay.ai"
 
@@ -428,6 +428,10 @@ def _browser_defaults(done: int) -> dict:
          good manners goes first in it (GOOD_MANNERS), and the
          room is listened to for overheard swearing and its noise level
          (AUDIO_TRANSFORMERS: overheard-manners and auto volume, on)
+     17. a device with little memory hears with the light STT model where
+         its language has one (LOCAL_STT's `light`; Danish: Alvenir's 95 MB
+         instead of Røst's 320 MB, which closed the page on a 4 GB tablet):
+         where the browser reports less than 8 GB, or nothing (_small_device)
     The m2v model folders and the unused pipeline plugins are written on
     every boot, since they follow whatever the site shipped and the
     pipeline the user chose.
@@ -535,6 +539,10 @@ def _browser_defaults(done: int) -> dict:
                    out.setdefault("audio_transformers", {})):
             for name in AUDIO_TRANSFORMERS:
                 tx.setdefault(name, {})
+    if done < 17 and _small_device():
+        if Configuration().get("stt", {}).get("module") == LOCAL_STT and \
+                "light" not in (read_user_config().get("stt", {}).get(LOCAL_STT) or {}):
+            out.setdefault("stt", {}).setdefault(LOCAL_STT, {})["light"] = True
     user = read_user_config()
     # defaults v3 turned padaos off (a ~30 s regex compile after boot); without
     # it padatious matched "what time is it" to the timer skill. v4 takes
@@ -642,6 +650,37 @@ def _phone_language():
     elif not pick and "lang" in layer:
         del layer["lang"]
         layer.store()
+
+
+def _small_device() -> bool:
+    """Whether the device is too small for a big STT model (defaults v17).
+
+    The browser's navigator.deviceMemory (EMKAY_DEVICE_MEMORY, worker.js):
+    Chrome rounds it down to a power of two, so a 6 GB phone says 4; under
+    8 is small. Safari and Firefox say nothing: small
+    too, since Safari gives a tab even less than Chrome does."""
+    try:
+        return float(os.environ.get("EMKAY_DEVICE_MEMORY") or 0) < 8
+    except ValueError:
+        return True
+
+
+def _light_after_crash() -> bool:
+    """The last start ended with the page closed by the browser before the
+    ears opened (app.js, opening): too little memory for the STT model.
+    The light model is turned on, also over the user's own choice, or the
+    page would close again at every start; the page says so, and the
+    control panel can turn it off again. True when it was turned on now."""
+    if not os.environ.get("EMKAY_LAST_START_CRASHED"):
+        return False
+    from ovos_config import Configuration
+    stt = Configuration().get("stt", {})
+    if stt.get("module") != LOCAL_STT or (stt.get(LOCAL_STT) or {}).get("light"):
+        return False
+    write_user_config({"stt": {LOCAL_STT: {"light": True}}})
+    Configuration.reload()
+    print("[emkay] the last start closed the page before the ears opened: light STT model")
+    return True
 
 
 def _phone_timezone():
@@ -851,6 +890,7 @@ def start(on_message=None, user_config=None) -> dict:
     Configuration.reload()
     write_user_config(_browser_defaults(done))
     Configuration.reload()
+    light_after_crash = _light_after_crash()
     # the default session keeps its own copy of the configuration from when
     # it was made (location and time zone, but also the intent pipeline and
     # its blacklist), and it was made before the steps above: make it again
@@ -897,6 +937,7 @@ def start(on_message=None, user_config=None) -> dict:
             "hotword": Configuration().get("hotwords", {}).get(
                 Configuration().get("listener", {}).get("wake_word") or "", {}),
             "stt_module": Configuration().get("stt", {}).get("module"),
+            "light_after_crash": light_after_crash,   # app.js says so
             # where it hears and speaks, for the privacy chip (web/privacy.js)
             "speech_route": privacy.route(),
             # how the page listens, from OVOS' own listener settings

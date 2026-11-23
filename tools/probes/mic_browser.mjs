@@ -28,7 +28,7 @@ if _s.get("module") != "ovos-stt-plugin-whisper-browser":
     _r = True
 else:
     from ovos_stt_plugin_whisper_browser import model_for
-    _m = (_s.get("ovos-stt-plugin-whisper-browser") or {}).get("model") or model_for(_c.get("lang", "en-US"))
+    _m = (_s.get("ovos-stt-plugin-whisper-browser") or {}).get("model") or model_for(_c.get("lang", "en-US"), bool((_s.get("ovos-stt-plugin-whisper-browser") or {}).get("light")))
     _r = bool(await js.emkayWhisper.ready(_m))
 str(_r)`;
 const t0 = Date.now();
