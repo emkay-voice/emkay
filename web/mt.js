@@ -13,6 +13,9 @@
 // the rest (py/emkay_mobile/translate.py): SentencePiece in and out, and
 // ovos-localize's own masking of {slots} and (a|b) alternatives.
 
+import { oneAtATime } from "./model-queue.js";
+import { open as openSplit } from "./onnx-split.js";
+
 const BASE = new URL("./", import.meta.url).href;
 const HF = "https://huggingface.co/";
 const CACHE = "emkay-mt-v1";
@@ -112,7 +115,8 @@ function load(lang) {
       })));
       progress(m.id, 1, "reading");
       const opts = { executionProviders: ["wasm"], graphOptimizationLevel: "all" };
-      const [enc, dec] = await Promise.all(bytes.map((b) => o.InferenceSession.create(b, opts)));
+      // one after the other, with the weights as external data (onnx-split.js)
+      const [enc, dec] = await oneAtATime(() => Promise.all(bytes.splice(0).map((b) => openSplit(o, b, opts))));
       const cfg = JSON.parse(new TextDecoder().decode(await cached(url(m, "config.json"))));
       progress(m.id, 1, "ready");
       return { o, enc, dec, cfg };
