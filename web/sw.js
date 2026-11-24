@@ -94,8 +94,32 @@ self.addEventListener("fetch", (event) => {
     if (rest.startsWith("res/") || rest.startsWith("res-abs/")) return event.respondWith(serveRes(rest));
   }
   const path = panelPath(url);
-  if (path !== null) event.respondWith(serve(event, path, url));
+  if (path !== null) return event.respondWith(serve(event, path, url));
+  if (fresh(event.request, url)) event.respondWith(revalidated(event.request));
 });
+
+/**
+ * The site's own files are served with max-age=14400 (Cloudflare), and a
+ * reload checks the page, not the modules its workers import: after a
+ * release a device ran the old whisper.js for hours, next to the new
+ * app.js. Every one of them is asked for again here, with the copy the
+ * browser has (no-cache: a 304 when nothing changed). Not the page itself
+ * (a navigation can't be asked for this way; it is max-age=600), not a
+ * range (media), and not other sites.
+ */
+function fresh(req, url) {
+  return req.method === "GET" && url.origin === self.location.origin && req.mode !== "navigate"
+    && !req.headers.has("range");
+}
+
+/** `req` checked with the server; offline: the copy the browser has, as before. */
+async function revalidated(req) {
+  try {
+    return await fetch(req, { cache: "no-cache" });
+  } catch {
+    return fetch(req, { cache: "force-cache" });   // even an expired one
+  }
+}
 
 /** True when the request came from one of this site's own pages. */
 async function fromThisSite(event) {
