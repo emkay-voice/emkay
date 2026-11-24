@@ -309,7 +309,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
       await client.connect();
       client.addEventListener("message", (e) => fromHive(e.message));
       client.addEventListener("close", () => setTimeout(() => reconnect(), 3000));
-      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeId } });
+      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeName } });
       tellState();
     } catch {
       setTimeout(() => reconnect(), 10000);
@@ -418,7 +418,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
       fire("status", { key: "boot.loading" });
       await connect();
       await refreshHouse();
-      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeId } });
+      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeName } });
       tellState();
       const build = await fetch("build.json", { cache: "no-cache" }).then((r) => r.json()).catch(() => ({}));
       const precise = build.precise_models || {};
@@ -441,7 +441,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
       const voice = voiceFor(lang);
       if (voice && !sp) import("../piper.js").then((p) => p.ready(voice)).catch(() => {});
       return {
-        brain: "hivemind", node: client.nodeId, lang, skills: [], stt_module: stt,
+        brain: "hivemind", node: client.nodeName, lang, skills: [], stt_module: stt,
         wake_word: wakeWord, hotword,
         precise_models: precise, wake_words: wakeWords,
         site_langs: [lang], intent_langs: [lang], listener: {}, confirm_listening: false,

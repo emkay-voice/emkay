@@ -183,6 +183,14 @@ export class HiveMindClient extends EventTarget {
 
   get ready() { return !!(this.key || this.noise); }
 
+  /** What to call the hub on screen: its node_id where that is a name
+   * (hivemind-core 4: "master:0.0.0.0"), else the host (hivemind-core 5's
+   * node_id is its whole public key, PEM). */
+  get nodeName() {
+    const id = String(this.nodeId || "");
+    return id && id.length <= 64 && !/\s|BEGIN/.test(id) ? id : this.opts.host;
+  }
+
   /** How long a Noise connection waits for the hub to object before it
    * counts as connected: in XX the hub checks this Emkay's static key only
    * after our last handshake message, and says no by closing (1008). */
