@@ -145,7 +145,15 @@ async function graphOf(store, url) {
 
 /** The weights for X.onnx_data: X.onnx itself when it was split here, else the file of that name. */
 async function dataOf(store, url) {
-  return (await store.match(core(url) + GRAPH)) ? store.match(core(url)) : store.match(url);
+  if (await store.match(core(url) + GRAPH)) return store.match(core(url));
+  const res = await store.match(url);
+  // an empty data file an earlier Emkay kept (its fetch gave it one when the
+  // cache refused the real file): not there, so it is fetched
+  if (res && res.headers.get("content-length") === "0") {
+    await store.delete(url);
+    return undefined;
+  }
+  return res;
 }
 
 /** transformers.js' cache (match, put): .onnx files split, never downloaded here. */
@@ -219,6 +227,15 @@ async function inCache(model) {
   }
 }
 
+/** Every file of `model` in the cache gone (split graphs too), to be fetched again. */
+async function forget(model) {
+  const store = await caches.open((await transformers()).env.cacheKey);
+  for (const req of await store.keys()) {
+    if (req.url.includes(`/${model}/`)) await store.delete(req);
+  }
+  for (const url of refused) if (url.includes(`/${model}/`)) refused.delete(url);
+}
+
 /** The ASR pipeline for `model`, made once, when no other model is being opened. */
 function pipe(model) {
   if (!pipes.has(model)) {
@@ -235,7 +252,7 @@ function pipe(model) {
       // the download, for the page's status line (app.js onModel): one
       // model is several files; transformers.js reports each one
       const files = new Map();
-      const state = (await inCache(model)) ? "reading" : "loading";   // from the phone, or fetched
+      let state = (await inCache(model)) ? "reading" : "loading";   // from the phone, or fetched
       // downloads (splitCache) and then reading them from the cache both
       // report: the line only moves forward
       let shown = 0;
@@ -251,16 +268,36 @@ function pipe(model) {
         options.progress_callback({ status: "progress", file: `download ${url}`, loaded: l, total });
       modelProgress("stt", model, 0, state);
       console.log(`[emkay] whisper ${model}: ${state === "reading" ? "reading" : "fetching"}, opens on ${device}`);
+      const open = async () => {
+        Object.assign(options, { device });
+        if (device === "webgpu") options.dtype.decoder_model_merged = "q4";
+        try {
+          return await t.pipeline("automatic-speech-recognition", model, options);
+        } catch (e) {
+          if (device !== "webgpu") throw e;
+          // a GPU that can't run it (a tablet's, say): the CPU can, from the cache
+          console.warn(`[emkay] whisper ${model} won't open on webgpu, on wasm instead:`, e);
+          Object.assign(options, { device: "wasm" });
+          options.dtype.decoder_model_merged = "q8";
+          return await t.pipeline("automatic-speech-recognition", model, options);
+        }
+      };
       let asr;
       try {
-        asr = await t.pipeline("automatic-speech-recognition", model, options);
+        asr = await open();
       } catch (e) {
-        if (device !== "webgpu") throw e;
-        // a GPU that can't run it (a tablet's, say): the CPU can, from the cache
-        console.warn(`[emkay] whisper ${model} won't open on webgpu, on wasm instead:`, e);
-        Object.assign(options, { device: "wasm" });
-        options.dtype.decoder_model_merged = "q8";
-        asr = await t.pipeline("automatic-speech-recognition", model, options);
+        if (state !== "reading") throw e;
+        // what the cache holds won't open: cut short or left empty by an
+        // earlier Emkay ("Failed to load external data file ... Out of
+        // bounds"), and it would be read again at every start. It goes, and
+        // the model is fetched again, once
+        console.warn(`[emkay] whisper ${model} from the cache won't open, fetched again:`, e);
+        await forget(model);
+        state = "loading";
+        shown = 0;
+        files.clear();
+        modelProgress("stt", model, 0, state);
+        asr = await open();
       } finally {
         onDownload = null;
       }
