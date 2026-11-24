@@ -7,6 +7,9 @@
     "onnxruntime-web": "^1.31.1",
     "pyodide": "314.0.8",
     "@diffusionstudio/piper-wasm": "1.0.0",
-    "@huggingface/transformers": "4.3.2"
+    "@huggingface/transformers": "4.3.2",
+    "hivemind-js": "github:JarbasHiveMind/HiveMind-js#4e57ec2fc77d6a8e5d6b94c2676790b29c62f797",
+    "@noble/ciphers": "2.4.0",
+    "@noble/hashes": "2.4.0"
   }
 }

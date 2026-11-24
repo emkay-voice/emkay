@@ -336,4 +336,6 @@ OpenVoiceOS.
 Apache-2.0. Parts that come with their own licence: ovos-gui-visage
 (Apache-2.0), precise-onnx-js (Apache-2.0), onnxruntime-web
 (MIT), piper-wasm (MIT; it contains espeak-ng and its data, GPL-3.0, in
-`piper/`), and the Piper voices, each with the licence in its model card.
+`piper/`), HiveMind-js (Apache-2.0) and @noble/ciphers and @noble/hashes
+(MIT) in `hivemind-js/`, and the Piper voices, each with the licence in its
+model card.
