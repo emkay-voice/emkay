@@ -17,6 +17,11 @@ import { haLinkWanted, startHaDevice } from "./ha-device.js";
 import { chooseBrain, brainHint } from "./brains/choose.js";
 import { createActivity } from "./activity.js";
 import { createPrivacy } from "./privacy.js";
+import { capture, screen } from "./screenlog.js";
+
+// the page's warnings and errors, and its workers' (brain.on("log")), kept
+// for a log on the screen: ?log shows it (a tablet has no console at hand)
+capture(screen.add, "page");
 
 const $ = (id) => document.getElementById(id);
 apply();                    // the phone's language until OVOS is up
@@ -92,6 +97,8 @@ tabs.onmessage = ({ data }) => {
 const devMode = params.has("dev");
 const brain = createBrain(devMode ? "local" : chosenBrain(params));
 const call = brain.call;   // worker.js commands (local brain)
+brain.on("log", (d) => screen.add(d.line));
+if (params.has("log")) screen.show();
 
 const guiSockets = new Set();
 brain.on("status", (d) => bootStatus(d.key, d.progress, d.vars));
@@ -1036,7 +1043,7 @@ const modelStatus = {
   shown: new Set(),       // what:name keys on screen
   pending: new Map(),     // what:name -> timer before showing
   hideTimer: null,
-  show({ what, name, progress, state }) {
+  show({ what, name, progress, state, detail = "" }) {
     const key = `${what}:${name}`;
     if (state === "loading" || state === "reading") {
       if (!this.shown.has(key)) {
@@ -1062,21 +1069,21 @@ const modelStatus = {
       speechWait.ready(what);
       if (what === "stt") opening.done();   // the ears opened: this start did not end there
     }
-    if (state === "error") speechWait.fail(what);
+    if (state === "error") speechWait.fail(what, detail);
     if (state === "error" && what === "stt") opening.done();   // it failed, the page did not close
     if (!this.shown.has(key) && state === "ready") return;   // came from the cache: nothing to say
     this.shown.delete(key);
-    this.render(what, name, 1, state);
+    this.render(what, name, 1, state, detail);
     clearTimeout(this.hideTimer);
     this.hideTimer = setTimeout(() => {
       if (!this.shown.size) $("model-status").hidden = true;
       $("model-status-interim").hidden = true;
-    }, state === "error" ? 6000 : 3000);
+    }, state === "error" ? (detail ? 20000 : 6000) : 3000);   // why it failed takes reading
   },
-  render(what, name, progress, state) {
+  render(what, name, progress, state, detail = "") {
     clearTimeout(this.hideTimer);
     const pct = progress === null || progress === undefined ? "" : `${Math.round(progress * 100)} %`;
-    $("model-status-text").textContent = t(`model.${state}.${what}`, { name, pct });
+    $("model-status-text").textContent = t(`model.${state}.${what}`, { name, pct }) + (detail ? `: ${detail}` : "");
     $("model-bar").hidden = !(state === "loading" || state === "reading") || progress === null;
     if (progress !== null) $("model-bar").firstChild.style.width = `${Math.round(progress * 100)}%`;
     $("model-status").hidden = false;
@@ -1112,11 +1119,14 @@ const speechWait = {
   has(what) { return this.waiting.has(what); },
   remember: "",         // "stt"/"tts": no model for this language on the device – the choice is kept
   failed: new Set(),    // "stt"/"tts" whose model download failed (modelStatus)
-  /** A model download failed (modelStatus): an open note says so. */
-  fail(what) {
+  why: {},              // what -> why it failed, when the model said (whisper.js, worker.js)
+  failedText(what) { return t(`wait.${what}.failed`) + (this.why[what] ? ` (${this.why[what]})` : ""); },
+  /** A model download failed (modelStatus): an open note says so, and why. */
+  fail(what, detail = "") {
     this.failed.add(what);
+    this.why[what] = detail;
     if (this.waiting.has(what) && !$("speech-wait").hidden && !this.remember) {
-      $("speech-wait-text").textContent = t(`wait.${what}.failed`);
+      $("speech-wait-text").textContent = this.failedText(what);
     }
   },
   show({ what, utterance, reason }) {
@@ -1142,7 +1152,8 @@ const speechWait = {
     const both = this.waiting.has("stt") && this.waiting.has("tts");
     // the download failed (modelStatus "error"): not "on its way"
     $("speech-wait-text").textContent = t(this.remember ? `wait.${what}.language`
-      : this.failed.has(what) ? `wait.${what}.failed` : both ? "wait.both" : `wait.${what}`);
+      : both ? "wait.both" : `wait.${what}`);
+    if (!this.remember && this.failed.has(what)) $("speech-wait-text").textContent = this.failedText(what);
     $("speech-wait-servers").textContent = t(this.remember ? "wait.servers.always" : "wait.servers");
     $("speech-wait").hidden = false;
   },

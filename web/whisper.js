@@ -91,6 +91,7 @@ function download(store, net, url) {
     }));
     try {
       await store.put(url, new Response(counted, { headers: res.headers }));
+      console.log(`[emkay] fetched ${url.split("/").pop()}, ${(loaded / 1e6).toFixed(0)} MB`);
     } catch (e) {
       // the cache would not take it: an InPrivate/incognito window keeps
       // only a little, in memory ("Cache.put() encountered a network
@@ -249,16 +250,28 @@ function pipe(model) {
       onDownload = (url, l, total) =>
         options.progress_callback({ status: "progress", file: `download ${url}`, loaded: l, total });
       modelProgress("stt", model, 0, state);
-      const asr = await t.pipeline("automatic-speech-recognition", model, options)
-        .finally(() => { onDownload = null; });
+      console.log(`[emkay] whisper ${model}: ${state === "reading" ? "reading" : "fetching"}, opens on ${device}`);
+      let asr;
+      try {
+        asr = await t.pipeline("automatic-speech-recognition", model, options);
+      } catch (e) {
+        if (device !== "webgpu") throw e;
+        // a GPU that can't run it (a tablet's, say): the CPU can, from the cache
+        console.warn(`[emkay] whisper ${model} won't open on webgpu, on wasm instead:`, e);
+        Object.assign(options, { device: "wasm" });
+        options.dtype.decoder_model_merged = "q8";
+        asr = await t.pipeline("automatic-speech-recognition", model, options);
+      } finally {
+        onDownload = null;
+      }
       modelProgress("stt", model, 1, "ready");
       loaded.add(model);
-      console.log(`[emkay] whisper ${model} ready on ${device}`);
+      console.log(`[emkay] whisper ${model} ready on ${options.device}`);
       return asr;
     });
     p.catch((e) => {
       pipes.delete(model);
-      modelProgress("stt", model, 0, "error");
+      modelProgress("stt", model, 0, "error", e?.message ?? String(e));
       console.warn("[emkay] whisper", e);
     });
     pipes.set(model, p);
