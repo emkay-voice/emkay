@@ -249,6 +249,22 @@ def add_wake_word(out: Path) -> list:
 PIPER_FILES = ["piper_phonemize.js", "piper_phonemize.wasm", "piper_phonemize.data"]
 
 
+def recovering_queues(js: str) -> str:
+    """transformers.js makes its ONNX sessions one at a time, and runs them
+    one at a time, on a chain of Promises: `IS = IS.then(create)` and
+    `CS = CS.then(run)`. One that fails leaves the chain rejected, and every
+    later one in that worker then fails with the same error without being
+    tried: a model that would not open on WebGPU never got to open on wasm,
+    and one fetched again after a bad copy in the cache failed with the old
+    copy's error (Lenovo Tab M10, "Out of bounds"). Here the chain goes on
+    after a failure; the one that failed still gets its own error."""
+    chain = re.compile(r"\b([A-Za-z_$][\w$]*)=\1\.then\(([A-Za-z_$][\w$]*)\)")
+    js, n = chain.subn(r"\1=\1.catch(()=>{}).then(\2)", js)
+    if n != 2:
+        raise SystemExit(f"transformers.js: {n} session queues found, not 2 (recovering_queues)")
+    return js
+
+
 def add_whisper(out: Path):
     """transformers.js and the onnxruntime-web wasm it was built with into
     whisper/ (web/whisper.js); fetched only when Whisper STT is chosen, the
@@ -266,7 +282,8 @@ def add_whisper(out: Path):
     if have != want:
         raise SystemExit(f"transformers.js wants onnxruntime-web {want}, found {have}")
     (out / "whisper").mkdir()
-    shutil.copy(tjs / "dist/transformers.min.js", out / "whisper/transformers.min.js")
+    (out / "whisper/transformers.min.js").write_text(
+        recovering_queues((tjs / "dist/transformers.min.js").read_text()))
     # jsep: WebGPU (and wasm); asyncify: wasm alone, where there is no GPU
     for name in ("ort-wasm-simd-threaded.jsep.mjs", "ort-wasm-simd-threaded.jsep.wasm",
                  "ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm"):
