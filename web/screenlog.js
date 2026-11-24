@@ -6,7 +6,7 @@
 //   in a worker  capture((line) => self.postMessage({kind: "log", line}))
 //   on the page  capture(screen.add) and, with ?log, the panel (show())
 
-const MAX = 400;
+const MAX = 1000;
 
 /** What a console call says, as one line. */
 function text(args) {

@@ -99,6 +99,8 @@ const brain = createBrain(devMode ? "local" : chosenBrain(params));
 const call = brain.call;   // worker.js commands (local brain)
 brain.on("log", (d) => screen.add(d.line));
 if (params.has("log")) screen.show();
+// … or from the menu, also after the fact: the lines are kept from the start
+$("menu-log").onclick = () => { $("menu").hidden = true; if (!screen.el) screen.show(); };
 
 const guiSockets = new Set();
 brain.on("status", (d) => bootStatus(d.key, d.progress, d.vars));
