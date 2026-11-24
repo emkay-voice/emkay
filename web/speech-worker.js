@@ -15,6 +15,10 @@
 //                       {kind: "net", entry}              a network log entry
 
 import * as netlog from "./netlog.js";
+import { capture } from "./screenlog.js";
+
+// its warnings and errors, for the page's log (?log, screenlog.js)
+capture((line) => self.postMessage({ kind: "log", line }), "speech");
 
 // the downloads made here go into worker.js's network log
 netlog.install({ sink: (entry) => self.postMessage({ kind: "net", entry }) });

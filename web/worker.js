@@ -14,6 +14,10 @@
 
 import { matchLang } from "./langs.js";
 import * as netlog from "./netlog.js";
+import { capture } from "./screenlog.js";
+
+// its warnings and errors, for the page's log (?log, screenlog.js)
+capture((line) => self.postMessage({ kind: "log", line }), "ovos");
 
 // every request this worker makes goes into the network log (netlog.js),
 // which also keeps "local only" (ovos-phal-plugin-browser switches it through emkayNet)
@@ -31,13 +35,16 @@ globalThis.emkayJSPI = JSPI;
 // A speech model's download (whisper.js, piper.js), for the page's status
 // line (app.js modelStatus): what ("stt", "tts"), its name, progress 0..1 and
 // state ("loading" = fetched, "reading" = from the phone's cache, "ready", "error"). Progress is sent at most every 300 ms.
+// An "error" may say why (detail): the page shows it.
 const lastProgress = new Map();
-globalThis.emkayModelProgress = (what, name, progress, state = "loading") => {
+const opening = new Map();      // what:name -> [what, name] while it loads (speechWorker.onerror)
+globalThis.emkayModelProgress = (what, name, progress, state = "loading", detail = "") => {
   const key = `${what}:${name}`, now = Date.now();
   const busy = state === "loading" || state === "reading";   // fetched, or read from the phone
+  if (busy) opening.set(key, [what, name]); else opening.delete(key);
   if (busy && progress > 0 && now - (lastProgress.get(key) || 0) < 300) return;
   lastProgress.set(key, now);
-  self.postMessage({ kind: "model", payload: { what, name, progress, state } });
+  self.postMessage({ kind: "model", payload: { what, name, progress, state, detail: String(detail || "") } });
 };
 
 // The speech models (piper.js, whisper.js, mt.js) run in a worker of their
@@ -52,6 +59,7 @@ function speech() {
   speechWorker = new Worker(new URL("./speech-worker.js", import.meta.url), { type: "module" });
   speechWorker.onmessage = ({ data }) => {
     if (data.kind === "model") return globalThis.emkayModelProgress(...data.args);
+    if (data.kind === "log") return self.postMessage(data);   // to the page's log (screenlog.js)
     if (data.kind === "net") return netlog.add(data.entry);
     const call = speechCalls.get(data.id);
     if (!call) return;
@@ -63,9 +71,12 @@ function speech() {
     } else call.resolve(data.result);
   };
   speechWorker.onerror = (e) => {
-    console.error("[emkay] speech worker", e.message ?? e);
-    for (const call of speechCalls.values()) call.reject(new Error("the speech worker stopped"));
+    const why = `the speech worker stopped${e.message ? `: ${e.message}` : " (out of memory?)"}`;
+    console.error("[emkay]", why);
+    for (const call of speechCalls.values()) call.reject(new Error(why));
     speechCalls.clear();
+    // a model it was opening will not be ready: the page says so, and why
+    for (const [what, name] of [...opening.values()]) globalThis.emkayModelProgress(what, name, 0, "error", why);
     speechWorker = null;                 // the next call starts a new one
   };
   speechWorker.postMessage({ kind: "local-only", on: netlog.isLocalOnly() });

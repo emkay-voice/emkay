@@ -28,6 +28,11 @@ export function createLocalBrain() {
     if (data.kind === "core") for (const fn of busListeners) fn(data.payload);
     for (const fn of handlers.get(data.kind) || []) fn(data);
   };
+  // OVOS' worker itself gone (out of memory, say): the page's log says so (screenlog.js)
+  worker.onerror = (e) => {
+    const line = `${new Date().toTimeString().slice(0, 8)} ovos uncaught ${e.message || "the worker stopped (out of memory?)"}`;
+    for (const fn of handlers.get("log") || []) fn({ kind: "log", line });
+  };
 
   /**
    * Ask the worker to run a command; resolves with its result.
