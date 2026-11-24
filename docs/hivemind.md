@@ -18,6 +18,36 @@ recognition run on the phone (Whisper in the browser, or the browser's own
 recognition), only the text goes to the house; the answer (`speak`) comes
 back and the phone makes the voice (Piper in the browser).
 
+## HiveMind 4 and 5
+
+Emkay speaks both. hivemind-core 4 logs a client in with the password
+handshake (AES-GCM). hivemind-core 5 accepts only the Noise handshake
+(`Noise_XXpsk2_25519_ChaChaPoly_SHA256`): forward secrecy, both sides prove
+the password, and the hub pins each client's key
+([#120](https://github.com/emkay-voice/emkay/issues/120)). Emkay picks the
+one the hub offers. The Noise part is Jarbas'
+[HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js), with ChaCha20
+and argon2id from [@noble](https://paulmillr.com/noble/). These files load only when a
+hub asks for Noise.
+
+- **The password becomes a key with argon2id** (64 MiB, about 1–2 s on a
+  PC, longer on an old phone or tablet). That happens once per house: the
+  key is saved with the connection. A pairing link can also carry it ready
+  made (`psk`, hex: `poorman_handshake.noise.derive_psk(password, node_id)`),
+  and then the device never derives it.
+- **The hub remembers this Emkay's key** the first time it connects, and
+  Emkay remembers the hub's. If the browser forgets its data, the hub won't
+  take a new key: Emkay says so, and it must be paired again. If the house
+  comes back with another key, Emkay refuses it until it is paired again.
+- **A house that has done Noise once** is not accepted with the old handshake
+  again.
+- **The browser needs X25519 in Web Crypto** (Chrome 133+, Firefox 130+,
+  Safari 17+). Without it, Emkay says it can't log in to that house.
+- **hivemind-core 5 starts every client with nothing allowed.** For an Emkay:
+  `hivemind-core add-client … --allow recognizer_loop:utterance --allow
+  mycroft.volume.get.response --allow mycroft.mic.get_status.response`
+  (and what else it should send), or `hivemind-core allow-msg` afterwards.
+
 ## In the house
 
 The easy way: [Emkay Home](https://github.com/emkay-voice/emkay-home) – OVOS,
@@ -31,7 +61,8 @@ By hand: a hivemind-core next to your OVOS, and a client for Emkay:
 hivemind-core add-client --name kitchen-tablet
 ```
 
-It prints an access key and a password; Emkay needs both.
+It prints an access key and a password, and Emkay needs both (on
+hivemind-core 5, add the `--allow` lines above).
 
 **The browser needs `wss://`.** A page on https (app.emkay.ai) may only open
 a secure WebSocket to your LAN, so hivemind-core must have TLS: its own
@@ -68,7 +99,8 @@ echo -n '{"host":"ovos.local","port":5678,"ssl":true,"key":"…","password":"…
 # → https://app.emkay.ai/#hivemind=<that>
 ```
 
-Optional fields: `lang` (default: the browser's language), `stt`
+Optional fields: `psk` (the Noise key for hivemind-core 5, so the device
+skips argon2id), `lang` (default: the browser's language), `stt`
 (`"whisper"`, the default, or `"browser"`), `wakeWord` (e.g. `"hey_mycroft"`),
 `path` (hivemind-core behind a reverse proxy, e.g. `"/hivemind"`), `siteId`.
 
@@ -97,14 +129,16 @@ the pairing link and at `/api/house-info`), behind the house's password.
 ## Testing
 
 - `tools/probes/hivemind_node.mjs` – the client (`web/brains/hivemind.js`)
-  against a real hivemind-core: handshake, an answer, wrong password and
-  wrong key refused.
+  against a real hivemind-core 4 or 5: handshake, an answer, wrong password
+  and wrong key refused. On 5 also: the saved keys (no argon2id the second
+  time), a `psk`-only link, another static key and another hub key refused.
+  On 4 also: a house that did Noise is not accepted with the old handshake.
 - `tools/probes/hivemind_browser.mjs` – Emkay with `?brain=hivemind` in
   headless Chromium: boot, start, a typed question answered and spoken.
 - `tools/probes/hivemind_responder.py` – a stand-in skill on the bus that
   answers every utterance, for when there is no full OVOS at hand.
 
-A throw-away hivemind-core for the probes (in a venv; note
+A throw-away hivemind-core 4 for the probes (in a venv; note
 `bitstring<4.3` and `setuptools<81`, which hivemind-bus-client 0.4.4 and
 hivemind-plugin-manager 0.5 still need):
 
@@ -116,6 +150,13 @@ export XDG_DATA_HOME=/tmp/hm-home/data XDG_CONFIG_HOME=/tmp/hm-home/config
 /tmp/hm/bin/python tools/probes/hivemind_responder.py &
 HM_KEY=K HM_PASSWORD=P node tools/probes/hivemind_node.mjs
 ```
+
+The same with hivemind-core 5: `pip install --pre "hivemind-core>=5"
+ovos-messagebus`, a strong password, and the client's `--allow` lines
+(`--allow recognizer_loop:utterance` is enough for the probe). Port 5678 is
+the default for both. Note that hivemind-core 4 chokes on an access key
+whose `useragent:key` base64 ends in `=` (`Emkay:` plus a key of 3, 6, 9 …
+characters has none).
 
 ## Not yet
 

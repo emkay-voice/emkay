@@ -22,7 +22,10 @@
 // `houseSpeech: false` in the settings keeps speech on the phone.
 //
 // Settings live in localStorage ("emkay-hivemind"): host, port, ssl, key,
-// password, lang, stt ("whisper" | "browser"), speech, houseSpeech. They can be handed over once
+// password, lang, stt ("whisper" | "browser"), speech, houseSpeech – and
+// after a Noise handshake (hivemind-core 5, #120) the keys that go with the
+// house: psk, pskNode, noiseKey, serverKey, noise (hivemind.js). A pairing
+// link may carry `psk`, so the device never derives it. They can be handed over once
 // in the address, after "#hivemind=" as base64 JSON – a fragment never
 // leaves the browser – e.g. from a QR code; Emkay saves them and drops the
 // fragment from the address.
@@ -115,6 +118,17 @@ export function saveHivemindSettings(s) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
 }
 
+/** The Noise keys that belong to one house (hivemind.js' "keys" event). */
+const HOUSE_KEYS = ["psk", "pskNode", "noiseKey", "serverKey", "noise"];
+
+/** `s` without the keys of the house it was paired with: another house
+ * (or the same one paired again) starts from nothing. */
+export function withoutHouseKeys(s) {
+  const out = { ...s };
+  for (const k of HOUSE_KEYS) delete out[k];
+  return out;
+}
+
 /**
  * Ask for the connection (host, port, wss, key, password) in a small form
  * over the boot screen; resolves with the settings when "Connect" is
@@ -156,8 +170,14 @@ export function askHivemindSettings(prev = {}, error = "", { back = false, local
       e.preventDefault();
       const f = new FormData(form);
       box.remove();
-      resolve({ ...prev, host: f.get("host").trim(), port: +f.get("port"), ssl: f.has("ssl"),
-                key: f.get("key").trim(), password: f.get("password") });
+      const next = { host: f.get("host").trim(), port: +f.get("port"), ssl: f.has("ssl"),
+                     key: f.get("key").trim(), password: f.get("password") };
+      // another house, key or password: the old house's keys don't apply
+      const same = ["host", "port", "key", "password"].every((k) => String(prev[k] ?? "") === String(next[k]))
+        && !prev.forgetKeys;
+      const s = { ...(same ? prev : withoutHouseKeys(prev)), ...next };
+      delete s.forgetKeys;
+      resolve(s);
     };
     document.body.append(box);
   });
@@ -250,7 +270,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
       if (!settings?.host || !settings?.key || !settings?.password) settings = await ask(settings || {}, error, { local: true });
       fire("status", { key: "hivemind.connecting", vars: { host: settings.host } });
       lang = settings.lang || navigator.language || "en-US";
-      client = new HiveMindClient({ ...settings, lang, siteId: settings.siteId || "emkay" });
+      client = newClient();
       try {
         await client.connect();
         saveHivemindSettings(settings);
@@ -261,6 +281,8 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
         error = e.code ? t(`hivemind.err.${e.code}`, { host: settings.host }) : (e.message || String(e));
         if (location.protocol === "https:" && !settings.ssl) error += ` – ${t("hivemind.needs_wss")}`;
         settings = { ...settings, password: "" };   // ask again, with what was typed
+        // the house's key changed: whoever connects again pairs it again
+        if (e.code === "server_key") settings.forgetKeys = true;
       }
     }
     client.addEventListener("message", (e) => fromHive(e.message));
@@ -270,13 +292,24 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
     });
   }
 
+  /** A client for the house; the keys a Noise handshake leaves are saved
+   * with it, so the next connect skips argon2id and the hub knows us. */
+  function newClient() {
+    const c = new HiveMindClient({ ...settings, lang, siteId: settings.siteId || "emkay" });
+    c.addEventListener("keys", (e) => {
+      settings = { ...settings, ...e.keys };
+      saveHivemindSettings(settings);
+    });
+    return c;
+  }
+
   async function reconnect() {
     try {
-      client = new HiveMindClient({ ...settings, lang, siteId: settings.siteId || "emkay" });
+      client = newClient();
       await client.connect();
       client.addEventListener("message", (e) => fromHive(e.message));
       client.addEventListener("close", () => setTimeout(() => reconnect(), 3000));
-      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeId } });
+      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeName } });
       tellState();
     } catch {
       setTimeout(() => reconnect(), 10000);
@@ -289,7 +322,10 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
     const raw = JSON.stringify(msg);
     for (const fn of busListeners) fn(raw);
     fire("bus", { payload: raw });
-    if (msg.type === "speak" && msg.data?.utterance) speak(msg.data.utterance, msg.data.lang || lang);
+    // hivemind-core 5 / ovos-core say it as ovos.utterance.speak (OVOS-PIPELINE-1 §9.6)
+    if ((msg.type === "speak" || msg.type === "ovos.utterance.speak") && msg.data?.utterance) {
+      speak(msg.data.utterance, msg.data.lang || lang);
+    }
   }
 
   // ------------------------------------------------- this Emkay as a device
@@ -382,7 +418,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
       fire("status", { key: "boot.loading" });
       await connect();
       await refreshHouse();
-      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeId } });
+      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeName } });
       tellState();
       const build = await fetch("build.json", { cache: "no-cache" }).then((r) => r.json()).catch(() => ({}));
       const precise = build.precise_models || {};
@@ -405,7 +441,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
       const voice = voiceFor(lang);
       if (voice && !sp) import("../piper.js").then((p) => p.ready(voice)).catch(() => {});
       return {
-        brain: "hivemind", node: client.nodeId, lang, skills: [], stt_module: stt,
+        brain: "hivemind", node: client.nodeName, lang, skills: [], stt_module: stt,
         wake_word: wakeWord, hotword,
         precise_models: precise, wake_words: wakeWords,
         site_langs: [lang], intent_langs: [lang], listener: {}, confirm_listening: false,

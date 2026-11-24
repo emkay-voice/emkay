@@ -8,6 +8,9 @@
                                          unpacked into site-packages by the worker
     intents-<lang>-<hash>.zip            pre-trained padatious cache per language
     build.json                           what to load, for the worker
+    hivemind-js/                         Jarbas' HiveMind-js and the @noble files it
+                                         needs, for the Noise handshake of
+                                         hivemind-core 5 (web/brains/hivemind.js)
 
 Usage:
   python3 tools/build_site.py WHEELHOUSE PLAN.json [INTENT_CACHE_DIR ...]
@@ -282,6 +285,39 @@ def add_piper(out: Path):
         shutil.copy(src / name, out / "piper" / name)
 
 
+def add_hivemind(out: Path):
+    """HiveMind-js (JarbasHiveMind/HiveMind-js, pinned in package.json) into
+    hivemind-js/, with the @noble files ChaCha20-Poly1305 and argon2id need:
+    the Noise handshake hivemind-core 5 asks for (web/brains/hivemind.js,
+    #120). Plain ES modules, loaded only when a satellite meets such a hub;
+    the @noble files are followed from their imports, so only what is used
+    ships (~170 kB of the packages' ~540 kB)."""
+    hm = REPO / "node_modules/hivemind-js"
+    noble = REPO / "node_modules/@noble"
+    if not hm.exists() or not noble.exists():
+        print("no hivemind-js / @noble (npm install): satellites can't do HiveMind 5", file=sys.stderr)
+        return
+    dest = out / "hivemind-js"
+    dest.mkdir()
+    for name in ("hivemind.js", "hivemind.mjs"):
+        shutil.copy(hm / "static/js" / name, dest / name)
+    shutil.copy(hm / "LICENSE", dest / "LICENSE")
+    seen, todo = set(), [noble / "ciphers/chacha.js", noble / "hashes/argon2.js"]
+    while todo:
+        f = todo.pop().resolve()
+        if f in seen:
+            continue
+        seen.add(f)
+        for rel in re.findall(r"""^\s*(?:import|export)\b[^;]*?\bfrom\s+["'](\.[^"']+)["']""", f.read_text(), re.M):
+            todo.append(f.parent / rel)
+    for f in seen:
+        target = dest / "noble" / f.relative_to(noble.resolve())
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(f, target)
+    for pkg in ("ciphers", "hashes"):
+        shutil.copy(noble / pkg / "LICENSE", dest / "noble" / pkg / "LICENSE")
+
+
 def precise_models(out: Path) -> dict:
     """The Precise models the site ships (oww/precise/, from
     tools/fetch_wakeword_models.py): the model URL OVOS' config names ->
@@ -344,6 +380,7 @@ def main():
 
     wake_words = add_wake_word(OUT)
     add_piper(OUT)
+    add_hivemind(OUT)
     add_whisper(OUT)
     precise = precise_models(OUT)
 
