@@ -316,14 +316,23 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
     }
   }
 
+  /** The sentence spoken last, and when: see fromHive. */
+  let lastSpoken = { text: null, at: 0 };
+
   /** What the house says. */
   async function fromHive(msg) {
     if (asDevice(msg)) return;
     const raw = JSON.stringify(msg);
     for (const fn of busListeners) fn(raw);
     fire("bus", { payload: raw });
-    // hivemind-core 5 / ovos-core say it as ovos.utterance.speak (OVOS-PIPELINE-1 §9.6)
+    // hivemind-core 5 / ovos-core say it as ovos.utterance.speak (OVOS-PIPELINE-1 §9.6).
+    // While the bus names move, ovos-bus-client sends a reply under both
+    // names (#131): the same sentence within 3 s is said once, as the
+    // activity log (activity.js) shows it once.
     if ((msg.type === "speak" || msg.type === "ovos.utterance.speak") && msg.data?.utterance) {
+      const now = Date.now();
+      if (msg.data.utterance === lastSpoken.text && now - lastSpoken.at < 3000) return;
+      lastSpoken = { text: msg.data.utterance, at: now };
       speak(msg.data.utterance, msg.data.lang || lang);
     }
   }
@@ -484,7 +493,19 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
     playback_ended: () => local("recognizer_loop:audio_output_end"),
     // the visage's bus socket: what it says goes to the house
     core_open: () => null,
-    core_send: ({ raw }) => { const m = JSON.parse(raw); return client?.emit(m.type, m.data, m.context); },
+    core_send: ({ raw }) => {
+      const m = JSON.parse(raw);
+      // The visage looks for ovos-gui with mycroft.gui.connected and shows
+      // "GUI offline" until one answers (#124). GUI pages don't come over
+      // HiveMind yet (docs/hivemind.md), so the answer is given here: the
+      // visage opens its GUI socket, which stays empty (gui_message), and the
+      // house isn't asked.
+      if (m.type === "mycroft.gui.connected") {
+        local("mycroft.gui.port", { port: 18181, gui_id: m.data?.gui_id });
+        return null;
+      }
+      return client?.emit(m.type, m.data, m.context);
+    },
     gui_message: () => null,
     gui_sync: () => null,
     sound_bytes: () => null,
