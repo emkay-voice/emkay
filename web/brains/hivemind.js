@@ -221,7 +221,9 @@ export class HiveMindClient extends EventTarget {
           // after it: the hub knows this Emkay by another static key
           const code = this._settling && ev.code === 1008 ? "pinned"
             : this._shaking && ev.code === 1008 ? "password" : "closed";
-          this._fail?.(fail_(code, `HiveMind closed the connection (${ev.code}) – wrong key or password?`));
+          // closeCode: 1008 at the door is a hub that won't have this key (emkay#129)
+          this._fail?.(Object.assign(fail_(code, `HiveMind closed the connection (${ev.code}) – wrong key or password?`),
+                                     { closeCode: ev.code }));
         }
         this.dispatchEvent(Object.assign(new Event("close"), { code: ev.code }));
       };
