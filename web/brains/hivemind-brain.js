@@ -263,11 +263,31 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
     return new Uint8Array(await r.arrayBuffer());
   }
 
-  async function connect() {
+  /** How long to wait before trying a pairing link's connection again (#123). */
+  const RETRY_MS = [2000, 4000, 8000, 16000];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /**
+   * Connect, asking for the connection when there is none or it fails.
+   * `refusedError`: the hub no longer accepts this Emkay (#129) – ask at
+   * once, with that, and start from nothing with the house's keys.
+   */
+  async function connect(refusedError = "") {
     settings = hivemindSettings();
-    let error = "";
+    let error = refusedError;
+    let asking = !!refusedError;
+    if (refusedError) settings = { ...settings, forgetKeys: true };
+    // typed in the form in this session; else from a pairing link or saved,
+    // and the person may never have seen the key or the password (#123)
+    let typed = false;
+    let retries = 0;
     for (;;) {
-      if (!settings?.host || !settings?.key || !settings?.password) settings = await ask(settings || {}, error, { local: true });
+      if (asking || !settings?.host || !settings?.key || !settings?.password) {
+        settings = await ask(settings || {}, error, { local: true });
+        asking = false;
+        typed = true;
+        retries = 0;
+      }
       fire("status", { key: "hivemind.connecting", vars: { host: settings.host } });
       lang = settings.lang || navigator.language || "en-US";
       client = newClient();
@@ -277,19 +297,60 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
         break;
       } catch (e) {
         console.warn("[emkay] hivemind", e);
+        // A pairing link handed over by a page: the hub may not know this
+        // Emkay for a few seconds yet (it closes at the door), or still hold
+        // the key of the browser that had the connection before (pinned).
+        // Both pass, so try again a few times before asking (#123).
+        if (!typed && (e.code === "closed" || e.code === "pinned") && retries < RETRY_MS.length) {
+          await sleep(RETRY_MS[retries++]);
+          continue;
+        }
         // in the page's language where we know the error, else as it came
         error = e.code ? t(`hivemind.err.${e.code}`, { host: settings.host }) : (e.message || String(e));
         if (location.protocol === "https:" && !settings.ssl) error += ` – ${t("hivemind.needs_wss")}`;
-        settings = { ...settings, password: "" };   // ask again, with what was typed
+        // ask again: what was typed is typed again; a password from a
+        // pairing link stays, so "Connect" tries again without typing (#123)
+        asking = true;
+        if (typed) settings = { ...settings, password: "" };
         // the house's key changed: whoever connects again pairs it again
-        if (e.code === "server_key") settings.forgetKeys = true;
+        if (e.code === "server_key") settings = { ...settings, forgetKeys: true };
       }
     }
-    client.addEventListener("message", (e) => fromHive(e.message));
-    client.addEventListener("close", () => {
+    attach(client);
+  }
+
+  /** The house's messages, and what to do when it goes. */
+  function attach(c) {
+    c.addEventListener("message", (e) => fromHive(e.message));
+    c.addEventListener("close", () => {
+      if (c !== client) return;   // let go on purpose (refused)
       fire("status", { key: "hivemind.lost", vars: { host: settings.host } });
       setTimeout(() => reconnect(), 3000);
     });
+  }
+
+  /** Asking for the connection again after the hub refused this Emkay. */
+  let refusing = false;
+
+  /**
+   * The hub no longer accepts this Emkay (#129) – paired again from another
+   * browser, or taken off the hub: say so and ask for the connection (a new
+   * pairing link, or the form) instead of waiting for answers that never
+   * come, or knocking every 10 s on a door that stays shut.
+   */
+  async function refused() {
+    if (refusing) return;
+    refusing = true;
+    const old = client;
+    client = null;
+    old?.close();
+    try {
+      await connect(t("hivemind.err.refused", { host: settings.host }));
+    } finally {
+      refusing = false;
+    }
+    fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeName } });
+    tellState();
   }
 
   /** A client for the house; the keys a Noise handshake leaves are saved
@@ -304,20 +365,28 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
   }
 
   async function reconnect() {
+    if (refusing) return;
+    const c = client = newClient();
     try {
-      client = newClient();
-      await client.connect();
-      client.addEventListener("message", (e) => fromHive(e.message));
-      client.addEventListener("close", () => setTimeout(() => reconnect(), 3000));
-      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: client.nodeName } });
+      await c.connect();
+      if (c !== client) return c.close();
+      attach(c);
+      fire("status", { key: "hivemind.connected", progress: 1, vars: { node: c.nodeName } });
       tellState();
-    } catch {
+    } catch (e) {
+      if (c !== client) return;
+      // hivemind-core closes with 1008 for an identity it refuses; a password
+      // or a key it no longer takes, or a house with another key, are the
+      // same: trying again every 10 s won't change that (#129)
+      if (e.closeCode === 1008 || ["pinned", "password", "server_key"].includes(e.code)) return refused();
       setTimeout(() => reconnect(), 10000);
     }
   }
 
   /** The sentence spoken last, and when: see fromHive. */
   let lastSpoken = { text: null, at: 0 };
+  /** The person's questions the hub refused since the last answer: see fromHive. */
+  let deniedInARow = 0;
 
   /** What the house says. */
   async function fromHive(msg) {
@@ -325,6 +394,14 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
     const raw = JSON.stringify(msg);
     for (const fn of busListeners) fn(raw);
     fire("bus", { payload: raw });
+    // The hub refused a question of the person's (hive.policy.denied,
+    // HIVEMIND-POLICY-1 §6). One can be an ordinary refusal; two in a row
+    // with no answer between, and it no longer accepts this Emkay (#129).
+    if (msg.type === "hive.policy.denied" && msg.data?.denied_type === "recognizer_loop:utterance") {
+      console.warn(`[emkay] the house refused the question (${msg.data.code})`);
+      if (++deniedInARow >= 2) refused();
+      return;
+    }
     // hivemind-core 5 / ovos-core say it as ovos.utterance.speak (OVOS-PIPELINE-1 §9.6).
     // While the bus names move, ovos-bus-client sends a reply under both
     // names (#131): the same sentence within 3 s is said once, as the
@@ -333,6 +410,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
       const now = Date.now();
       if (msg.data.utterance === lastSpoken.text && now - lastSpoken.at < 3000) return;
       lastSpoken = { text: msg.data.utterance, at: now };
+      deniedInARow = 0;
       speak(msg.data.utterance, msg.data.lang || lang);
     }
   }
@@ -418,7 +496,7 @@ export function createHiveMindBrain({ ask = askHivemindSettings } = {}) {
 
   /** A question for the house. */
   async function ask_(text) {
-    await client.emit("recognizer_loop:utterance", { utterances: [text], lang });
+    await client?.emit("recognizer_loop:utterance", { utterances: [text], lang });
     return true;
   }
 
