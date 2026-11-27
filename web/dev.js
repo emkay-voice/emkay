@@ -2,7 +2,8 @@
 //
 // With ?dev, Emkay runs inside another window – the "Emkay Dev" extension's
 // panel in VS Code (vscode.dev, github.dev, Codespaces or the desktop app),
-// or a page on dev.emkay.ai – and takes orders from it with postMessage:
+// or a page on dev.emkay.ai or blocks.emkay.ai (Emkay Blocks) – and takes
+// orders from it with postMessage:
 //
 //   to Emkay  {emkayDev: 1, op, id?, ...}
 //     hello                         who are you, are you up?
@@ -29,11 +30,12 @@
 // frame has its own storage (browsers keep a frame's storage apart per site),
 // so a dev Emkay never touches the one you use day to day.
 
-/** Who may drive a dev Emkay: VS Code's webviews (web and desktop), dev.emkay.ai, and a local page. */
+/** Who may drive a dev Emkay: VS Code's webviews (web and desktop), dev.emkay.ai, Emkay Blocks, and a local page. */
 const ALLOWED = [
   /^https:\/\/[a-z0-9-]+\.vscode-cdn\.net$/,
   /^vscode-webview:\/\/[a-z0-9-]+$/,
   /^https:\/\/dev\.emkay\.ai$/,
+  /^https:\/\/blocks\.emkay\.ai$/,   // Emkay Blocks (#134)
   /^https:\/\/emkay-voice\.github\.io$/,
   // a page on this computer, also VS Code for the Web run locally (@vscode/test-web),
   // whose webviews are on <hash>.localhost
