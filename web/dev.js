@@ -1,7 +1,6 @@
 // Emkay Dev – Emkay as the test device for a skill you are writing (#43).
 //
-// With ?dev, Emkay runs inside another window – the "Emkay Dev" extension's
-// panel in VS Code (vscode.dev, github.dev, Codespaces or the desktop app),
+// With ?dev, Emkay runs inside another window – Emkay Code's panel in VS Code (vscode.dev, github.dev, Codespaces or the desktop app),
 // or a page on dev.emkay.ai or blocks.emkay.ai (Emkay Blocks) – and takes
 // orders from it with postMessage. ?dev&lang=da-DK starts it in that language
 // (#135) – the skill's, not the browser's. Orders:
@@ -68,7 +67,7 @@ export function startDev({ call, ready, onMessage, on }) {
   const badge = document.createElement("div");
   badge.className = "dev-badge";
   badge.textContent = "DEV";
-  badge.title = "Emkay Dev: this Emkay runs the skill from your editor (dev.emkay.ai)";
+  badge.title = "Emkay Dev: this Emkay runs the skill from Emkay Code or Emkay Blocks (dev.emkay.ai)";
   document.body.append(badge);
 
   onMessage((raw) => send({ op: "bus", raw }));
