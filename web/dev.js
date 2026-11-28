@@ -3,7 +3,8 @@
 // With ?dev, Emkay runs inside another window – the "Emkay Dev" extension's
 // panel in VS Code (vscode.dev, github.dev, Codespaces or the desktop app),
 // or a page on dev.emkay.ai or blocks.emkay.ai (Emkay Blocks) – and takes
-// orders from it with postMessage:
+// orders from it with postMessage. ?dev&lang=da-DK starts it in that language
+// (#135) – the skill's, not the browser's. Orders:
 //
 //   to Emkay  {emkayDev: 1, op, id?, ...}
 //     hello                         who are you, are you up?

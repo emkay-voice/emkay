@@ -95,6 +95,9 @@ tabs.onmessage = ({ data }) => {
 // Emkay Dev (?dev, web/dev.js): always the OVOS in this browser – the skill
 // you are writing runs in it
 const devMode = params.has("dev");
+// … in the language the page driving it works in (?dev&lang=da-DK, #135):
+// written into the user configuration of this dev Emkay, whose storage is its own
+const devLang = devMode ? params.get("lang") : null;
 const brain = createBrain(devMode ? "local" : chosenBrain(params));
 const call = brain.call;   // worker.js commands (local brain)
 brain.on("log", (d) => screen.add(d.line));
@@ -426,7 +429,7 @@ opening.start();
 (async () => {
   try {
     keepStorage();
-    const info = await call("boot", { userConfig: null, crashed: opening.crashed });
+    const info = await call("boot", { userConfig: devLang ? { lang: devLang } : null, crashed: opening.crashed });
     // no ears on the device to wait for (a server, another brain): nothing can close the page there
     if (!/whisper-browser/.test(info.stt_module || "")) opening.done();
     console.log("[emkay] OVOS up", info);

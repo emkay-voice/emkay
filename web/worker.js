@@ -188,9 +188,11 @@ function syncfs(populate) {
  * intents for: its `lang` and `secondary_langs` as ovos-config merges them
  * (the user layer mycroft.conf over the assistant layer runtime.conf),
  * else the phone's language as boot._phone_language picks it, else en-US.
+ * `want` – the language a page driving a dev Emkay asked for (?dev&lang=,
+ * #135) – comes before all of them, as boot writes it into the user layer.
  * Read from the files before Python runs, so only these are downloaded.
  */
-function bootLanguages(siteLangs) {
+function bootLanguages(siteLangs, want = null) {
   const read = (name) => {
     try { return JSON.parse(py.FS.readFile(`/home/pyodide/.config/mycroft/${name}`, { encoding: "utf8" })); }
     catch { return {}; }
@@ -199,7 +201,7 @@ function bootLanguages(siteLangs) {
   const assistant = read("runtime.conf");
   const phone = (self.navigator.languages || [self.navigator.language])
     .map((l) => matchLang(l, siteLangs)).find(Boolean);
-  const lang = matchLang(user.lang ?? assistant.lang, siteLangs) ?? phone
+  const lang = want ?? matchLang(user.lang ?? assistant.lang, siteLangs) ?? phone
     ?? matchLang("en-US", siteLangs) ?? siteLangs[0];
   const extra = (user.secondary_langs ?? assistant.secondary_langs ?? [])
     .map((l) => matchLang(l, siteLangs)).filter(Boolean);
@@ -238,7 +240,12 @@ async function boot({ userConfig, crashed = false }) {
   const stamp = `${home}/.local/share/emkay-mobile/downloads.json`;
   let have = {};
   try { have = JSON.parse(py.FS.readFile(stamp, { encoding: "utf8" })); } catch {}
-  const langs = bootLanguages(Object.keys(b.intent_cache || {}));
+  // a dev Emkay's language from the page (?dev&lang=, #135): one the site
+  // has intents for, else the page's wish is dropped and the usual one is used
+  const siteLangs = Object.keys(b.intent_cache || {});
+  const want = userConfig?.lang ? matchLang(userConfig.lang, siteLangs) : null;
+  if (userConfig?.lang) { if (want) userConfig.lang = want; else delete userConfig.lang; }
+  const langs = bootLanguages(siteLangs, want);
   const bases = new Set(langs.map((l) => l.split("-")[0].toLowerCase()));
   for (const [lang, entry] of Object.entries(b.intent_cache || {})) {
     if (!langs.includes(lang) || have[`intents-${lang}`] === entry.hash) continue;
@@ -394,9 +401,7 @@ const commands = {
   },
   /** Run a line of Python and return its value as text (for debugging). */
   python: ({ code }) => String(py.runPython(code)),
-  // the same where the code may wait (JSPI: a model run, pyodide.ffi.run_sync)
-  python_async: async ({ code }) => String(await py.runPythonAsync(code)),
-  /** The same through runPythonAsync: Python that may wait (JSPI, issue #20). */
+  /** The same through runPythonAsync: Python that may wait (JSPI – a model run, pyodide.ffi.run_sync; issue #20). */
   python_async: async ({ code }) => String(await py.runPythonAsync(code)),
 };
 
